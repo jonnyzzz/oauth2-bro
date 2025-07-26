@@ -1,204 +1,348 @@
 package main
 
 import (
-	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
 	"io"
+	"math/big"
+	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
 )
 
-func TestHTTPServer(t *testing.T) {
-	// Set up a test HTTP server on a random port
-	port := "8078"
-	addr := fmt.Sprintf("localhost:%s", port)
+// findAvailablePort finds an available port to use for testing
+func findAvailablePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port, nil
+}
+
+// testEndpoint is a helper function to test HTTP endpoints
+func testEndpoint(t *testing.T, client *http.Client, baseURL, path, expectedContent string) {
+	t.Helper()
+
+	url := baseURL + path
+	resp, err := client.Get(url)
+	if err != nil {
+		t.Fatalf("Failed to make request to %s: %v", url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		t.Errorf("Expected status code 200, got %d for %s", resp.StatusCode, url)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("Failed to read response body: %v", err)
+	}
+
+	bodyStr := string(body)
+	if !strings.Contains(bodyStr, expectedContent) {
+		t.Errorf("Response body does not contain expected content '%s'. Got: %s", expectedContent, bodyStr)
+	}
+
+	// Check headers
+	versionHeader := resp.Header.Get("X-oauth2-bro-version")
+	if versionHeader != version {
+		t.Errorf("Expected X-oauth2-bro-version header to be %s, got %s", version, versionHeader)
+	}
+}
+
+// startIntegrationServer starts the actual main application as a separate process
+func startIntegrationServer(t *testing.T, envVars map[string]string) (*exec.Cmd, func(), error) {
+	// Build the application
+	cmd := exec.Command("go", "run", ".")
 
 	// Set environment variables
-	os.Setenv("OAUTH2_BRO_ADDR", addr)
-	defer os.Unsetenv("OAUTH2_BRO_ADDR")
+	cmd.Env = os.Environ()
+	for key, value := range envVars {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
+	}
 
-	// Start the server using our helper function
-	server, errChan := startServer()
+	// Capture output for debugging
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	// Ensure the server is stopped after the test
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = server.Shutdown(ctx)
-	}()
+	// Start the process
+	err := cmd.Start()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to start integration server: %v", err)
+	}
 
-	// Check for any immediate errors
-	select {
-	case err, ok := <-errChan:
-		if ok && err != nil {
-			t.Fatalf("Server error: %v", err)
+	// Wait a bit for server to start
+	time.Sleep(500 * time.Millisecond)
+
+	// Check if process is still running
+	if cmd.Process == nil {
+		return nil, nil, fmt.Errorf("server process failed to start")
+	}
+
+	cleanup := func() {
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+			_ = cmd.Wait()
 		}
-	case <-time.After(100 * time.Millisecond):
-		// Server started successfully
+	}
+
+	return cmd, cleanup, nil
+}
+
+func TestHTTPIntegration(t *testing.T) {
+	// Find an available port
+	port, err := findAvailablePort()
+	if err != nil {
+		t.Fatalf("Failed to find available port: %v", err)
+	}
+
+	// Set up environment variables for HTTP testing
+	envVars := map[string]string{
+		"OAUTH2_BRO_ADDR": fmt.Sprintf("localhost:%d", port),
+	}
+
+	// Start the integration server
+	_, cleanup, err := startIntegrationServer(t, envVars)
+	if err != nil {
+		t.Fatalf("Failed to start integration server: %v", err)
+	}
+	defer cleanup()
+
+	// Create HTTP client
+	client := &http.Client{
+		Timeout: 10 * time.Second,
 	}
 
 	// Test the root endpoint
 	t.Run("Root endpoint", func(t *testing.T) {
-		resp, err := http.Get(fmt.Sprintf("http://%s/", addr))
-		if err != nil {
-			t.Fatalf("Failed to make request to root endpoint: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != 200 {
-			t.Errorf("Expected status code 200, got %d", resp.StatusCode)
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
-		}
-
-		bodyStr := string(body)
-		if !strings.Contains(bodyStr, "OAuth2-bro") {
-			t.Errorf("Response body does not contain expected content. Got: %s", bodyStr)
-		}
-
-		// Check headers
-		versionHeader := resp.Header.Get("X-oauth2-bro-version")
-		if versionHeader != version {
-			t.Errorf("Expected X-oauth2-bro-version header to be %s, got %s", version, versionHeader)
-		}
+		testEndpoint(t, client, fmt.Sprintf("http://localhost:%d", port), "/", "OAuth2-bro")
 	})
 
 	// Test the health endpoint
 	t.Run("Health endpoint", func(t *testing.T) {
-		resp, err := http.Get(fmt.Sprintf("http://%s/health", addr))
+		testEndpoint(t, client, fmt.Sprintf("http://localhost:%d", port), "/health", "Alive")
+	})
+}
+
+func TestHTTPSIntegration(t *testing.T) {
+	// Find an available port
+	port, err := findAvailablePort()
+	if err != nil {
+		t.Fatalf("Failed to find available port: %v", err)
+	}
+
+	// Generate test certificates
+	certFile, keyFile, certCleanup, err := generateTestCertificates()
+	if err != nil {
+		t.Fatalf("Failed to generate test certificates: %v", err)
+	}
+	defer certCleanup()
+
+	// Set up environment variables for HTTPS testing
+	envVars := map[string]string{
+		"OAUTH2_BRO_ADDR":                fmt.Sprintf("localhost:%d", port),
+		"OAUTH2_BRO_HTTPS_CERT_FILE":     certFile,
+		"OAUTH2_BRO_HTTPS_CERT_KEY_FILE": keyFile,
+	}
+
+	// Start the integration server
+	_, cleanup, err := startIntegrationServer(t, envVars)
+	if err != nil {
+		t.Fatalf("Failed to start HTTPS integration server: %v", err)
+	}
+	defer cleanup()
+
+	// Load the certificate for the client
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		t.Fatalf("Failed to load certificate for client: %v", err)
+	}
+
+	// Create a certificate pool and add our certificate
+	certPool := x509.NewCertPool()
+	certBytes, err := os.ReadFile(certFile)
+	if err != nil {
+		t.Fatalf("Failed to read certificate file: %v", err)
+	}
+
+	if !certPool.AppendCertsFromPEM(certBytes) {
+		t.Fatalf("Failed to append certificate to pool")
+	}
+
+	// Create HTTPS client that uses the generated certificate
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				Certificates: []tls.Certificate{cert},
+				RootCAs:      certPool,
+				ServerName:   "localhost",
+			},
+		},
+	}
+
+	// Test the root endpoint over HTTPS
+	t.Run("Root endpoint HTTPS", func(t *testing.T) {
+		testEndpoint(t, client, fmt.Sprintf("https://localhost:%d", port), "/", "OAuth2-bro")
+	})
+
+	// Test the health endpoint over HTTPS
+	t.Run("Health endpoint HTTPS", func(t *testing.T) {
+		testEndpoint(t, client, fmt.Sprintf("https://localhost:%d", port), "/health", "Alive")
+	})
+
+	// Verify that the server is using the specified certificate
+	t.Run("Server uses the specified certificate", func(t *testing.T) {
+		// Parse the expected certificate
+		expectedCertBytes, err := os.ReadFile(certFile)
 		if err != nil {
-			t.Fatalf("Failed to make request to health endpoint: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != 200 {
-			t.Errorf("Expected status code 200, got %d", resp.StatusCode)
+			t.Fatalf("Failed to read certificate file: %v", err)
 		}
 
-		body, err := io.ReadAll(resp.Body)
+		block, _ := pem.Decode(expectedCertBytes)
+		if block == nil {
+			t.Fatalf("Failed to parse certificate PEM")
+		}
+
+		expectedCert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
+			t.Fatalf("Failed to parse certificate: %v", err)
 		}
 
-		bodyStr := string(body)
-		if !strings.Contains(bodyStr, "Alive") {
-			t.Errorf("Response body does not contain expected content. Got: %s", bodyStr)
+		// Connect to the server and get its certificate
+		conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), &tls.Config{
+			RootCAs:    certPool,
+			ServerName: "localhost",
+		})
+		if err != nil {
+			t.Fatalf("Failed to connect to server: %v", err)
 		}
+		defer conn.Close()
 
-		// Check headers
-		versionHeader := resp.Header.Get("X-oauth2-bro-version")
-		if versionHeader != version {
-			t.Errorf("Expected X-oauth2-bro-version header to be %s, got %s", version, versionHeader)
+		// Get the server's certificate
+		serverCerts := conn.ConnectionState().PeerCertificates
+		if len(serverCerts) == 0 {
+			t.Fatalf("No server certificates found")
+		}
+		serverCert := serverCerts[0]
+
+		// Compare the certificates
+		if !serverCert.Equal(expectedCert) {
+			t.Errorf("Server certificate does not match the expected certificate")
 		}
 	})
 }
 
-func TestHTTPSConfiguration(t *testing.T) {
-	// Create temporary certificate and key files (empty files for testing)
-	certFile, err := os.CreateTemp("", "cert*.pem")
+func TestCertificateGeneration(t *testing.T) {
+	certFile, keyFile, cleanup, err := generateTestCertificates()
 	if err != nil {
-		t.Fatalf("Failed to create temp cert file: %v", err)
+		t.Fatalf("Failed to generate test certificates: %v", err)
 	}
-	defer os.Remove(certFile.Name())
+	defer cleanup()
 
-	keyFile, err := os.CreateTemp("", "key*.pem")
+	// Verify files exist
+	if _, err := os.Stat(certFile); os.IsNotExist(err) {
+		t.Errorf("Certificate file does not exist: %s", certFile)
+	}
+
+	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+		t.Errorf("Certificate key file does not exist: %s", keyFile)
+	}
+
+	// Verify certificate can be loaded
+	_, err = tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		t.Fatalf("Failed to create temp key file: %v", err)
-	}
-	defer os.Remove(keyFile.Name())
-
-	// Set up a test HTTPS server on a random port
-	port := "8079"
-	addr := fmt.Sprintf("localhost:%s", port)
-
-	// Set environment variables
-	os.Setenv("OAUTH2_BRO_ADDR", addr)
-	os.Setenv("OAUTH2_BRO_HTTPS_CERT_FILE", certFile.Name())
-	os.Setenv("OAUTH2_BRO_HTTPS_CERT_KEY_FILE", keyFile.Name())
-	defer func() {
-		os.Unsetenv("OAUTH2_BRO_ADDR")
-		os.Unsetenv("OAUTH2_BRO_HTTPS_CERT_FILE")
-		os.Unsetenv("OAUTH2_BRO_HTTPS_CERT_KEY_FILE")
-	}()
-
-	// Test that the server configuration is correct
-	server, err := setupServer()
-	if err != nil {
-		t.Fatalf("Failed to set up server: %v", err)
-	}
-
-	// Verify server address
-	if server.Addr != addr {
-		t.Errorf("Expected server address to be %s, got %s", addr, server.Addr)
-	}
-
-	// Verify HTTPS configuration
-	certFilePath := os.Getenv("OAUTH2_BRO_HTTPS_CERT_FILE")
-	certKeyFilePath := os.Getenv("OAUTH2_BRO_HTTPS_CERT_KEY_FILE")
-
-	if certFilePath != certFile.Name() {
-		t.Errorf("Expected OAUTH2_BRO_HTTPS_CERT_FILE to be %s, got %s", certFile.Name(), certFilePath)
-	}
-
-	if certKeyFilePath != keyFile.Name() {
-		t.Errorf("Expected OAUTH2_BRO_HTTPS_CERT_KEY_FILE to be %s, got %s", keyFile.Name(), certKeyFilePath)
-	}
-
-	// Verify that the certificate and key files exist
-	if _, err := os.Stat(certFilePath); os.IsNotExist(err) {
-		t.Errorf("Certificate file does not exist: %s", certFilePath)
-	}
-
-	if _, err := os.Stat(certKeyFilePath); os.IsNotExist(err) {
-		t.Errorf("Certificate key file does not exist: %s", certKeyFilePath)
+		t.Errorf("Failed to load certificate pair: %v", err)
 	}
 }
 
-// Helper function that extracts the server setup logic from main() for testing
-func setupServer() (*http.Server, error) {
-	addr := os.Getenv("OAUTH2_BRO_ADDR")
-	if len(addr) == 0 {
-		addr = "localhost:8077"
+// generateTestCertificates creates temporary certificate and key files for testing
+func generateTestCertificates() (certFile, keyFile string, cleanup func(), err error) {
+	// Generate private key
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", "", nil, err
 	}
 
-	server := &http.Server{
-		Addr:    addr,
-		Handler: nil, // Use default ServeMux
+	// Create certificate template
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			Organization: []string{"OAuth2-bro Test"},
+		},
+		NotBefore:             time.Now().Add(-24 * time.Hour),
+		NotAfter:              time.Now().Add(24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		DNSNames:              []string{"localhost", "127.0.0.1"},
+		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
 	}
 
-	return server, nil
-}
+	// Create certificate
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return "", "", nil, err
+	}
 
-// startServer starts the server based on environment variables
-// It returns the server instance and a channel that will receive any error
-func startServer() (*http.Server, chan error) {
-	server, _ := setupServer()
-	errChan := make(chan error, 1)
+	// Create temporary files
+	certFileHandle, err := os.CreateTemp("", "test-cert-*.pem")
+	if err != nil {
+		return "", "", nil, err
+	}
+	certFile = certFileHandle.Name()
 
-	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_FILE")
-	certKeyFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_KEY_FILE")
+	keyFileHandle, err := os.CreateTemp("", "test-key-*.pem")
+	if err != nil {
+		os.Remove(certFile)
+		return "", "", nil, err
+	}
+	keyFile = keyFileHandle.Name()
 
-	go func() {
-		var err error
-		if len(certFile) > 0 {
-			fmt.Printf("Listening https://%s\n", server.Addr)
-			err = server.ListenAndServeTLS(certFile, certKeyFile)
-		} else {
-			fmt.Printf("Listening http://%s\n", server.Addr)
-			err = server.ListenAndServe()
-		}
+	// Write certificate to file
+	err = pem.Encode(certFileHandle, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	if err != nil {
+		os.Remove(certFile)
+		os.Remove(keyFile)
+		return "", "", nil, err
+	}
 
-		if err != nil && err != http.ErrServerClosed {
-			errChan <- err
-		}
-		close(errChan)
-	}()
+	// Write private key to file
+	err = pem.Encode(keyFileHandle, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	})
+	if err != nil {
+		os.Remove(certFile)
+		os.Remove(keyFile)
+		return "", "", nil, err
+	}
 
-	return server, errChan
+	// Close files
+	certFileHandle.Close()
+	keyFileHandle.Close()
+
+	// Return cleanup function
+	cleanup = func() {
+		os.Remove(certFile)
+		os.Remove(keyFile)
+	}
+
+	return certFile, keyFile, cleanup, nil
 }
