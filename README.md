@@ -1,8 +1,7 @@
 # OAuth2-bro
 OAuth2 server implementation with implicit authentication and authorization. 
 
-<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/02e41930-eeb0-425b-900e-3a0993cff27c" />
-
+<img width="20%" alt="OAuth2-bro logo" src="https://github.com/user-attachments/assets/02e41930-eeb0-425b-900e-3a0993cff27c" />
 
 Why?
 ----
@@ -34,7 +33,7 @@ Eugene believes there are many more use cases for that authentication server, wh
 License
 -------
 
-Apache 2.0, see LICENSE.txt in the repository
+Apache 2.0, see [LICENSE](LICENSE) file in the repository
 
 
 Distribution
