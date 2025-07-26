@@ -21,9 +21,9 @@ HTTP Server
 
 `OAUTH2_BRO_ADDR` (defaults to localhost:8077) -- the server address to bind
 
-`OAUTH2_BRO_HTTPS_CERT` -- if set, enabled HTTPS with the certificate, as file with PEM encoded certificate
+`OAUTH2_BRO_HTTPS_CERT_FILE` -- if set, enabled HTTPS with the certificate, as file with PEM encoded certificate
 
-`OAUTH2_BRO_HTTPS_CERT_KEY`  -- if set, enabled HTTPS with the server key-pair, as file with PEM encoded private key
+`OAUTH2_BRO_HTTPS_CERT_KEY_FILE`  -- if set, enabled HTTPS with the server key-pair, as file with PEM encoded private key
 
 
 Keys in Memory

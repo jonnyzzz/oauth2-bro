@@ -19,8 +19,8 @@ func main() {
 		addr = "localhost:8077"
 	}
 
-	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT")
-	certKeyFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_KEY")
+	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_FILE")
+	certKeyFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_KEY_FILE")
 
 	var err error
 	if len(certFile) > 0 {
