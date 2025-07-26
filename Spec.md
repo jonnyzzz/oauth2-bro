@@ -61,3 +61,10 @@ never exported from the application. For better security,
 we recommend using an external services like KMS or hardware,
 which guarantees no access to the private key body.
 
+Endpoints
+---
+
+`/` is the information and fallback endpoint
+
+`/health` can be used for monitoring purposes 
+
