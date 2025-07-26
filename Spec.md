@@ -15,6 +15,17 @@ The OAuth2 server is working as follows
 - the server can run HTTPS, given it receives the certificate and private keys to do so (we still recommend terminate HTTPS at a load balancer level)
 - the server is built minimalistic to allow wide range of deployments, from docker to kubernetes and cloud providers
 
+
+HTTP Server
+---
+
+`OAUTH2_BRO_ADDR` (defaults to localhost:8077) -- the server address to bind
+
+`OAUTH2_BRO_HTTPS_CERT` -- if set, enabled HTTPS with the certificate, as file with PEM encoded certificate
+
+`OAUTH2_BRO_HTTPS_CERT_KEY`  -- if set, enabled HTTPS with the server key-pair, as file with PEM encoded private key
+
+
 Keys in Memory
 --------------
 
