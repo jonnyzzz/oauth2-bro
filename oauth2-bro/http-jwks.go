@@ -7,9 +7,6 @@ import (
 	"net/http"
 )
 
-import gojwt "github.com/golang-jwt/jwt/v5"
-
-var SigningMethodRSA *gojwt.SigningMethodRSA
 var JWKs []byte
 
 type Keys struct {
@@ -18,8 +15,6 @@ type Keys struct {
 }
 
 func init_jwks() {
-	SigningMethodRSA = gojwt.SigningMethodRS512
-
 	spec, err := (&jwk.KeySpec{
 		Key:       RsaPrivateKey,
 		KeyID:     RsaPrivateKeyId,
