@@ -12,13 +12,12 @@ var version = "SNAPSHOT"
 func main() {
 	fmt.Println("Staring OAuth2-bro v.", version)
 	fmt.Println("")
+	printOAuth2BroBanner()
 
 	addr := os.Getenv("OAUTH2_BRO_ADDR")
 	if len(addr) == 0 {
 		addr = "localhost:8077"
 	}
-
-	printOAuth2BroBanner()
 
 	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT")
 	certKeyFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_KEY")
