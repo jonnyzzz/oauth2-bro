@@ -8,6 +8,7 @@ import (
 func init() {
 	http.HandleFunc("/", wrapResponse(home))
 	http.HandleFunc("/health", wrapResponse(health))
+	http.HandleFunc("/jwks", wrapResponse(jwks))
 }
 
 func wrapResponse(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {

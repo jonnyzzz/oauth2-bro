@@ -14,6 +14,9 @@ func main() {
 	fmt.Println("")
 	printOAuth2BroBanner()
 
+	init_token_keys()
+	init_jwks()
+
 	addr := os.Getenv("OAUTH2_BRO_ADDR")
 	if len(addr) == 0 {
 		addr = "localhost:8077"
