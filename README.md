@@ -1,6 +1,9 @@
 # OAuth2-bro
 OAuth2 server implementation with implicit authentication and authorization. 
 
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/02e41930-eeb0-425b-900e-3a0993cff27c" />
+
+
 Why?
 ----
 
