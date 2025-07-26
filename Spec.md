@@ -25,6 +25,10 @@ HTTP Server
 
 `OAUTH2_BRO_HTTPS_CERT_KEY_FILE`  -- if set, enabled HTTPS with the server key-pair, as file with PEM encoded private key
 
+`OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE` -- optional key file for access token private key, PEM encoded
+
+`OAUTH2_BRO_TOKEN_RSA_KEY_ID` -- optional, the key file key id
+
 
 Keys in Memory
 --------------
