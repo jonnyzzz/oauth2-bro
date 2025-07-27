@@ -10,16 +10,16 @@ import (
 var JWKs []byte
 
 type Keys struct {
-	// Keys is an array of JSON web keys.
+	// BroKeys is an array of JSON web keys.
 	Keys []*jwk.JWK `json:"keys"`
 }
 
 func init_jwks() {
 	spec, err := (&jwk.KeySpec{
-		Key:       RsaPrivateKey,
-		KeyID:     RsaPrivateKeyId,
+		Key:       TokenKeys.PrivateKey(),
+		KeyID:     TokenKeys.KeyId(),
 		Use:       "sig",
-		Algorithm: SigningMethodRSA.Alg(),
+		Algorithm: TokenKeys.SigningMethod().Alg(),
 	}).PublicOnly()
 
 	if err != nil {
@@ -45,7 +45,7 @@ func init_jwks() {
 }
 
 func jwks(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Add("Content-Type", "application/jwk+json")
+	w.Header().Add("Content-Type", "application/jwk+json;charset=utf-8")
 	w.WriteHeader(200)
 	_, _ = w.Write(JWKs)
 }

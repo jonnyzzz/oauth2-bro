@@ -66,18 +66,18 @@ type TokenResponse struct {
 }
 
 func renderTokenResponse(w http.ResponseWriter, r *http.Request, username string) {
-	token := gojwt.NewWithClaims(SigningMethodRSA, gojwt.MapClaims{
-		"exp":   time.Now().Add(time.Duration(RsaPrivateKeySignatureExpirationSeconds) * time.Second).Unix(),
+	token := gojwt.NewWithClaims(TokenKeys.SigningMethod(), gojwt.MapClaims{
+		"exp":   time.Now().Add(time.Duration(TokenKeys.ExpirationSeconds()) * time.Second).Unix(),
 		"sid":   username,
 		"sub":   username,
 		"name":  username,
 		"email": fmt.Sprint(username, "@example.com"),
 	})
 
-	token.Header["kid"] = RsaPrivateKeyId
+	token.Header["kid"] = TokenKeys.KeyId()
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(RsaPrivateKey)
+	tokenString, err := token.SignedString(TokenKeys.PrivateKey())
 	if err != nil {
 		badRequest(w, r, "Failed to sign new token for username="+username+" "+err.Error())
 		return
@@ -85,7 +85,7 @@ func renderTokenResponse(w http.ResponseWriter, r *http.Request, username string
 
 	response := TokenResponse{
 		TokenType:    "Bearer",
-		ExpiresIn:    RsaPrivateKeySignatureExpirationSeconds - 3, // remove 3 seconds to lower collision probability
+		ExpiresIn:    TokenKeys.ExpirationSeconds() - 3, // remove 3 seconds to lower collision probability
 		IdToken:      tokenString,
 		AccessToken:  tokenString,
 		RefreshToken: "TODO as refresh token",

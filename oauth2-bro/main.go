@@ -28,7 +28,6 @@ func main() {
 	fmt.Println("")
 	printOAuth2BroBanner()
 
-	init_jwt()
 	init_token_keys()
 	init_jwks()
 	init_client_id()
