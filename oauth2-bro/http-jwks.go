@@ -23,12 +23,12 @@ func init_jwks() {
 	}).PublicOnly()
 
 	if err != nil {
-		log.Fatalln("Failed to convert RSA key. ", err)
+		log.Fatalln("Failed to get RSA key spec. ", err)
 	}
 
 	j, err := spec.ToJWK()
 	if err != nil {
-		log.Fatalln("Failed to serialize to JWK. ", err)
+		log.Fatalln("Failed to serialize JWK from key spec. ", err)
 	}
 
 	keys := Keys{
@@ -37,10 +37,10 @@ func init_jwks() {
 
 	data, err := json.MarshalIndent(keys, "", "  ")
 	if err != nil {
-		log.Fatalln("Failed to serialize to JSON. ", err)
+		log.Fatalln("Failed to serialize JWKs to JSON. ", err)
 	}
 
-	log.Println("Generated JWKS:\n", string(data))
+	log.Println("Actual JWKs:\n", string(data))
 	JWKs = data
 }
 
