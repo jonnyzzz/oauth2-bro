@@ -171,3 +171,28 @@ local networks with local rules (TBD), and M users from their personal decides.
 So to implement that, the following tweaks has to be implemented
 * Allow multiple external JWKs to be merged into the resulting one
 * Encode the next chained services in the `code` and refresh token responses
+
+
+Explicit Tokens
+----
+
+Automation scripts at the client side may still need us to generate
+valid JWT tokens without following the full authentication flow. 
+
+For this scenario, we need to allow the login or token endpoints (TBD)
+to generate and return a token. 
+
+An usage example could go to the [No Login](https://www.jetbrains.com/help/ide-services/no-login-authentication.html)
+flow of IDE Services. And to implenent that, we also need a utility to
+resolve and patch the `machine-config.json` file on the user machine. 
+
+
+Key Generation
+---
+
+It is usually a task to generate a key, public key, certificate. There are
+way to many services and tools which can help with that. 
+
+To simplify operations, we include the necessary commands directly to the
+`oauth2-bro` tool. TBD
+
