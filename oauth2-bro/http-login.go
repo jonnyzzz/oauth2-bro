@@ -17,12 +17,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessType := queryParams.Get("access_type") // "offline"
-	if accessType != "offline" {
-		badRequest(w, r, "access_type parameter is "+accessType+" but 'offline' is only supported")
-		return
-	}
-
 	clientId := queryParams.Get("client_id") // "tbe-server"
 	if len(clientId) == 0 {
 		badRequest(w, r, "client_id parameter is missing")
@@ -30,12 +24,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 	if !isClientIdAllowed(clientId) {
 		badRequest(w, r, "client_id '"+clientId+"' parameter is not allowed")
-		return
-	}
-
-	scope := queryParams.Get("scope") // "profile email"
-	if len(scope) == 0 {
-		badRequest(w, r, "scope parameter is missing")
 		return
 	}
 

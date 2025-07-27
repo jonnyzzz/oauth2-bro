@@ -35,6 +35,25 @@ func token(w http.ResponseWriter, r *http.Request) {
 
 	grantType := r.Form.Get("grant_type")
 
+	if grantType == "refresh_token" {
+		refreshTokenString := r.Form.Get("refresh_token")
+
+		ok, err := ValidateRefreshToken(refreshTokenString)
+		if err != nil {
+			badRequest(w, r, "Failed to validate refresh token "+err.Error())
+			return
+		}
+
+		if !ok {
+			badRequest(w, r, "Invalid refresh token")
+			return
+		}
+
+		//TODO: figure our the token params: username, name, email
+		renderTokenResponse(w, r, "toolbox.admin")
+		return
+	}
+
 	if grantType == "authorization_code" {
 		code := r.Form.Get("code")
 		if len(code) == 0 {
@@ -55,6 +74,7 @@ func token(w http.ResponseWriter, r *http.Request) {
 
 		//TODO: remember visited code to reject it next time
 
+		//TODO: figure our the token params: username, name, email
 		renderTokenResponse(w, r, "toolbox.admin")
 		return
 	}
@@ -90,12 +110,19 @@ func renderTokenResponse(w http.ResponseWriter, r *http.Request, username string
 		return
 	}
 
+	refreshTokenString, err := SignRefreshToken()
+	if err != nil {
+		badRequest(w, r, "Failed to sign new refresh token for username="+username+" "+err.Error())
+		return
+	}
+
+	log.Println("Generated refresh token for user =", username, "\n", refreshTokenString)
 	response := TokenResponse{
 		TokenType:    "Bearer",
 		ExpiresIn:    TokenKeys.ExpirationSeconds() - 3, // remove 3 seconds to lower collision probability
 		IdToken:      tokenString,
 		AccessToken:  tokenString,
-		RefreshToken: "TODO as refresh token",
+		RefreshToken: refreshTokenString,
 	}
 
 	responseData, err := json.MarshalIndent(response, "", "  ")

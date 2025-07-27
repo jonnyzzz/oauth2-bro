@@ -39,6 +39,12 @@ HTTP Server
 
 `OAUTH2_BRO_CODE_EXPIRATION_SECONDS` -- optional, expiration of code response, default 5 seconds
 
+`OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE` -- optional, key file for the OAuth2 code responses, PEM encoded
+
+`OAUTH2_BRO_REFRESH_RSA_KEY_ID` -- optional, the key file ID
+
+`OAUTH2_BRO_REFRESH_EXPIRATION_SECONDS` -- optional, expiration of code response, default 10 days in seconds
+
 Auth Scenarios
 -----
 

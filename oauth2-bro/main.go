@@ -31,6 +31,7 @@ func main() {
 	init_token_keys()
 	init_jwks()
 	init_code_keys()
+	init_refresh_keys()
 	init_client_id()
 
 	addr := resolveBindAddress()
