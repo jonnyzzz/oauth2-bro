@@ -1,0 +1,27 @@
+name: Test Ubuntu
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Get Packages
+      run: go get
+      working-directory: ./oauth2-bro
+
+    - name: Test
+      run: go test
+      working-directory: ./oauth2-bro
