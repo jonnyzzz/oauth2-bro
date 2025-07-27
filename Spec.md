@@ -19,15 +19,17 @@ The OAuth2 server is working as follows
 HTTP Server
 ---
 
-`OAUTH2_BRO_ADDR` (defaults to localhost:8077) -- the server address to bind
+`OAUTH2_BRO_BIND_PORT` (defaults to 8077) -- the server port to bind
 
-`OAUTH2_BRO_HTTPS_CERT_FILE` -- if set, enabled HTTPS with the certificate, as file with PEM encoded certificate
+`OAUTH2_BRO_BIND_HOST` (defaults to localhost) -- the server bind host address, for production, or Docker use the right network interface(s) to bind
 
-`OAUTH2_BRO_HTTPS_CERT_KEY_FILE`  -- if set, enabled HTTPS with the server key-pair, as file with PEM encoded private key
+`OAUTH2_BRO_HTTPS_CERT_FILE` -- if set, enabled HTTPS with the certificate, as a file with a PEM encoded certificate
+
+`OAUTH2_BRO_HTTPS_CERT_KEY_FILE`  -- if set, enabled HTTPS with the server key-pair, as a file with a PEM encoded private key
 
 `OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE` -- optional key file for access token private key, PEM encoded
 
-`OAUTH2_BRO_TOKEN_RSA_KEY_ID` -- optional, the key file key id
+`OAUTH2_BRO_TOKEN_RSA_KEY_ID` -- optional, the key file key id, otherwise a hash of the token public key
 
 
 Auth Scenarios

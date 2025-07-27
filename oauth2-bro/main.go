@@ -9,6 +9,20 @@ import (
 
 var version = "SNAPSHOT"
 
+func resolveBindAddress() string {
+	bindPort := os.Getenv("OAUTH2_BRO_BIND_PORT")
+	if len(bindPort) == 0 {
+		bindPort = "8077"
+	}
+
+	bindHost := os.Getenv("OAUTH2_BRO_BIND_HOST")
+	if len(bindHost) == 0 {
+		bindHost = "localhost"
+	}
+
+	return bindHost + ":" + bindPort
+}
+
 func main() {
 	fmt.Println("Staring OAuth2-bro v.", version)
 	fmt.Println("")
@@ -18,11 +32,7 @@ func main() {
 	init_token_keys()
 	init_jwks()
 
-	addr := os.Getenv("OAUTH2_BRO_ADDR")
-	if len(addr) == 0 {
-		addr = "localhost:8077"
-	}
-
+	addr := resolveBindAddress()
 	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_FILE")
 	certKeyFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_KEY_FILE")
 

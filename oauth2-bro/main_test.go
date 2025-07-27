@@ -114,7 +114,7 @@ func TestHTTPIntegration(t *testing.T) {
 
 	// Set up environment variables for HTTP testing
 	envVars := map[string]string{
-		"OAUTH2_BRO_ADDR": fmt.Sprintf("localhost:%d", port),
+		"OAUTH2_BRO_BIND_PORT": fmt.Sprintf("%d", port),
 	}
 
 	// Start the integration server
@@ -156,7 +156,7 @@ func TestHTTPSIntegration(t *testing.T) {
 
 	// Set up environment variables for HTTPS testing
 	envVars := map[string]string{
-		"OAUTH2_BRO_ADDR":                fmt.Sprintf("localhost:%d", port),
+		"OAUTH2_BRO_BIND_PORT":           fmt.Sprintf("%d", port),
 		"OAUTH2_BRO_HTTPS_CERT_FILE":     certFile,
 		"OAUTH2_BRO_HTTPS_CERT_KEY_FILE": keyFile,
 	}

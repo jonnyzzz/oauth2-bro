@@ -23,6 +23,7 @@ RUN addgroup -g 990 app &&  \
     chmod g+s /tmp
 USER 990
 
-ENV OAUTH2_BRO_ADDR 0.0.0.0:8077
+ENV OAUTH2_BRO_BIND_HOST=0.0.0.0
+
 EXPOSE 8077
 ENTRYPOINT ["/oauth2-bro/oauth2-bro"]
