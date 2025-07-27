@@ -30,6 +30,21 @@ HTTP Server
 `OAUTH2_BRO_TOKEN_RSA_KEY_ID` -- optional, the key file key id
 
 
+Auth Scenarios
+-----
+
+We support IDE Services deployments 
+ * on-prem, where OAuth2-bro is configured in the YAML configs (TBD)
+ * SaaS version, where OAuth2-bro is connected to JetBrains Hub (TBD)
+
+On the client side, we support the following clients, through IDE Services
+abstraction
+* Toolbox App
+* IntelliJ's license dialog
+* IDE Services Administration Console 
+
+
+
 Keys in Memory
 --------------
 
