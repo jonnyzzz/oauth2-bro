@@ -183,7 +183,7 @@ For this scenario, we need to allow the login or token endpoints (TBD)
 to generate and return a token. 
 
 An usage example could go to the [No Login](https://www.jetbrains.com/help/ide-services/no-login-authentication.html)
-flow of IDE Services. And to implenent that, we also need a utility to
+flow of IDE Services. And to implement that, we also need a utility to
 resolve and patch the `machine-config.json` file on the user machine. 
 
 
