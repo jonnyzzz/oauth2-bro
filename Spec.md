@@ -101,3 +101,7 @@ Endpoints
 
 `/health` can be used for monitoring purposes 
 
+`/login` the OAuth2 / OpenId Connect endpoint to start the login, here the OAuth2-bro makes the login happen automatically without actually showing any pages
+
+`/token` the endpoint to complete the OAuth2 login flow or refresh a token.
+
