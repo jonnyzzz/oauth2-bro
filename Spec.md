@@ -155,3 +155,19 @@ On the Client ID and Secret
 The service validates client ID is listed in supported. And we validate if there
 is a secret. The client secret can be salted with the clientId and only stored that
 way in the configuration parameters of that services. It'd not yet implemented.
+
+
+
+Proxy Mode
+----
+
+We can implement rule-based authentication, where for some users, it works
+implicitly, but for other users it redirects further to the next authentication
+service, such as Google or Okta. 
+
+The use case for that can be, say, if we want to authentication N machines in the
+local networks with local rules (TBD), and M users from their personal decides. 
+
+So to implement that, the following tweaks has to be implemented
+* Allow multiple external JWKs to be merged into the resulting one
+* Encode the next chained services in the `code` and refresh token responses
