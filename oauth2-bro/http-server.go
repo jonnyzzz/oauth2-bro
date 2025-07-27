@@ -7,6 +7,7 @@ import (
 
 func init() {
 	http.HandleFunc("/", wrapResponse(home))
+	http.HandleFunc("/favicon.ico", wrapResponse(favicon))
 	http.HandleFunc("/health", wrapResponse(health))
 	http.HandleFunc("/jwks", wrapResponse(jwks))
 	http.HandleFunc("/login", wrapResponse(login))
@@ -20,9 +21,4 @@ func wrapResponse(handler func(http.ResponseWriter, *http.Request)) func(http.Re
 		writer.Header().Set("X-oauth2-bro-version", version)
 		handler(writer, request)
 	}
-}
-
-func Error(w http.ResponseWriter, message string, code int) {
-	log.Println("ERROR: ", code, message)
-	http.Error(w, message, code)
 }
