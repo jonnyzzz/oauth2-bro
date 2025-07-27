@@ -29,3 +29,23 @@ func (tk *broKeysImpl) RenderJwtToken(claims gojwt.MapClaims) (string, error) {
 
 	return tokenString, nil
 }
+
+func (tk *broKeysImpl) ValidateJwtToken(tokenString string, claims gojwt.Claims) (*gojwt.Token, error) {
+	token, err := gojwt.ParseWithClaims(tokenString, claims, func(t *gojwt.Token) (any, error) {
+		//TODO: check signing alg
+		alg := t.Method.Alg()
+		if alg != tk.SigningMethod().Alg() {
+			return nil, fmt.Errorf("unexpected signing method: %v", alg)
+		}
+
+		//TODO: multiple public keys check
+		return &tk.PrivateKey().PublicKey, nil
+	}, gojwt.WithExpirationRequired())
+
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: check expiration and other predicates
+	return token, nil
+}

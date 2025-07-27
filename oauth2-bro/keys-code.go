@@ -34,30 +34,24 @@ func SignCodeToken() (string, error) {
 }
 
 func ValidateCodeToken(tokenString string) (bool, error) {
-	type MyCustomClaims struct {
+	type CodeClaims struct {
 		Bro string `json:"bro"`
 		gojwt.RegisteredClaims
 	}
 
-	token, err := gojwt.ParseWithClaims(tokenString, &MyCustomClaims{}, func(t *gojwt.Token) (any, error) {
-		//TODO: check signing alg
-		//TODO: multiple public keys check
-		return &CodeKeys.PrivateKey().PublicKey, nil
-	}, gojwt.WithExpirationRequired())
-
+	token, err := CodeKeys.ValidateJwtToken(tokenString, &CodeClaims{})
 	if err != nil {
 		return false, err
 	}
 
-	claims, ok := token.Claims.(*MyCustomClaims)
+	claims, ok := token.Claims.(*CodeClaims)
 	if !ok {
-		return false, fmt.Errorf("failed to get code claims. ")
+		return false, fmt.Errorf("failed to cast claims to CodeClaims")
 	}
 
 	if claims.Bro != broCodeVersion {
 		return false, fmt.Errorf("Unsupported code claim version. ")
 	}
 
-	//TODO: check bro claim
 	return true, nil
 }

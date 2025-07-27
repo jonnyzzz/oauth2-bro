@@ -13,6 +13,7 @@ type BroKeys interface {
 	SigningMethod() *gojwt.SigningMethodRSA
 
 	RenderJwtToken(claims gojwt.MapClaims) (string, error)
+	ValidateJwtToken(tokenString string, claims gojwt.Claims) (*gojwt.Token, error)
 }
 
 type broKeysImpl struct {
