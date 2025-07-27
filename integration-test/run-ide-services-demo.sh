@@ -25,5 +25,10 @@ if [ ! -d "$DEMO_DIR" ]; then
   find "$DEMO_DIR" -mindepth 1 -type d -empty -delete
 fi
 
-docker-compose -f "$DEMO_DIR/docker-compose.yml" -f "$(pwd)/docker-compose.override.yaml" up
+## make it rebuild oauth2-bro
+docker compose -f "$DEMO_DIR/docker-compose.yml" -f "$(pwd)/docker-compose.override.yaml" rm -f mock-auth
+
+docker compose -f "$DEMO_DIR/docker-compose.yml" -f "$(pwd)/docker-compose.override.yaml" up --build
+
+
 

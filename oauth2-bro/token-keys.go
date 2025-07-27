@@ -9,12 +9,32 @@ import (
 	"encoding/pem"
 	"log"
 	"os"
+	"strconv"
 )
+import gojwt "github.com/golang-jwt/jwt/v5"
 
 var RsaPrivateKey *rsa.PrivateKey
 var RsaPrivateKeyId string
+var RsaPrivateKeySignatureExpirationSeconds int
+var SigningMethodRSA *gojwt.SigningMethodRSA
+
+func init_jwt() {
+	SigningMethodRSA = gojwt.SigningMethodRS512
+}
 
 func init_token_keys() {
+	tokenExpirationText := os.Getenv("OAUTH2_BRO_TOKEN_EXPIRATION_SECONDS")
+	if len(tokenExpirationText) == 0 {
+		RsaPrivateKeySignatureExpirationSeconds = 300
+	} else {
+		tokenExpirationTime, err := strconv.Atoi(tokenExpirationText)
+		if tokenExpirationTime <= 0 || err != nil {
+			log.Fatalln("Incorrect token expiration time ", tokenExpirationText, ".")
+		}
+		RsaPrivateKeySignatureExpirationSeconds = tokenExpirationTime
+	}
+	log.Printf("Token expiartion seconds = %d", RsaPrivateKeySignatureExpirationSeconds)
+
 	externalKeyPemFile := os.Getenv("OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE")
 	if len(externalKeyPemFile) > 0 {
 		log.Println("Loading RSA key from PEM file ", externalKeyPemFile, "...")

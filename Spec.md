@@ -31,6 +31,7 @@ HTTP Server
 
 `OAUTH2_BRO_TOKEN_RSA_KEY_ID` -- optional, the key file key id, otherwise a hash of the token public key
 
+`OAUTH2_BRO_TOKEN_EXPIRATION_SECONDS` -- optional, the access/id token lifetime, default 300 seconds
 
 Auth Scenarios
 -----
