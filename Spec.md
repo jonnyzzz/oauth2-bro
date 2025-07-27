@@ -105,3 +105,53 @@ Endpoints
 
 `/token` the endpoint to complete the OAuth2 login flow or refresh a token.
 
+
+
+Multi-node configuration
+-------------
+
+The production setup of OAuth2-bro assumes we have multiple instances of
+the service running behind the load balances (which handles HTTPS too)
+
+Ideal configuration of the service is to keep private-keys unique per-instance,
+that creates a complexity, because user sessions are not sticky and can start
+from one instance and return the the other one. 
+
+There are the following tokens/keys/validations which we are going to maintain
+* public keys to sign Access/ID tokens + private key per each node
+* public keys to sign Refresh tokens + private key per each node
+* public keys to sing the OAuth2 code response + private key per each node
+
+The main undecided yet problem is to understand how a new node will communicate
+its fresh-ly generated public keys back to the running nodes. We want to simplify
+or even avoid the communication between nodes, and we want to avoid the avalanche
+restart of the nodes to update the list of keys. 
+
+One of the possible solutions is to use a common database or KMS service, where all public keys
+are registered. 
+
+The other solution is to do something similar to certificates, where
+each new key-pair is signed with the common key/certificate allowing to avoid listing
+all keys explicitly. That solution requires to have an access to generate signatures
+of fresh keys, which can be equivalent of having the actual key in-place
+
+
+Having these parts unknown, we can still define the following concepts 
+* the Access/ID tokens are JWT tokens with JWKs listed keys
+* the `code` response to be a JWT token, with 5 seconds lifetime, and
+  yet another internal to OAuth2-bro list of accepted public keys. This way it can
+  allow any node to handle the code request
+* each node remembers requested `code` to allow it working only once. The cache TTL is also included.
+* refresh token is yet another JWT token with yet another list of accepted public keys. It is
+  up to the service administrator to define the lifetime or presence of the refresh token.
+* OAuth2-bro must re-validate that refresh token matches the same network parameters, as
+  it was on the moment of the initial login. It means we include encrypted/hashed data in the
+  refresh token JWT to use for validation
+
+
+On the Client ID and Secret
+---
+
+The service validates client ID is listed in supported. And we validate if there
+is a secret. The client secret can be salted with the clientId and only stored that
+way in the configuration parameters of that services. It'd not yet implemented.
