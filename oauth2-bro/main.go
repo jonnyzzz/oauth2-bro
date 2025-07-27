@@ -31,6 +31,7 @@ func main() {
 	init_jwt()
 	init_token_keys()
 	init_jwks()
+	init_client_id()
 
 	addr := resolveBindAddress()
 	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_FILE")
