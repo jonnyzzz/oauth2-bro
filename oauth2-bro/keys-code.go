@@ -16,6 +16,7 @@ func init_code_keys() {
 		"OAUTH2_BRO_CODE_RSA_KEY_ID",
 		"OAUTH2_BRO_CODE_EXPIRATION_SECONDS",
 		5,
+		2048,
 	)
 
 	if err != nil || keys == nil {

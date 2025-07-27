@@ -13,10 +13,10 @@ import (
 )
 
 // NewKeys creates a new broKeysImpl with the specified environment variable names and initializes it
-func NewKeys(envKeyPemFile, envKeyId, envExpirationSeconds string, defaultExpirationSeconds int) (BroKeys, error) {
+func NewKeys(envKeyPemFile, envKeyId, envExpirationSeconds string, defaultExpirationSeconds int, defaultKeyBits int) (BroKeys, error) {
 	tk := &broKeysImpl{}
 	initExpirationSeconds(envExpirationSeconds, tk, defaultExpirationSeconds)
-	initPrivateKey(envKeyPemFile, tk)
+	initPrivateKey(envKeyPemFile, tk, defaultKeyBits)
 	initKeyId(envKeyId, tk)
 	return tk, nil
 }
@@ -38,7 +38,7 @@ func initKeyId(envKeyId string, tk *broKeysImpl) {
 	log.Println("Using key ID ", tk.keyId)
 }
 
-func initPrivateKey(envKeyPemFile string, tk *broKeysImpl) {
+func initPrivateKey(envKeyPemFile string, tk *broKeysImpl, defaultKeyBits int) {
 	externalKeyPemFile := os.Getenv(envKeyPemFile)
 	if len(externalKeyPemFile) > 0 {
 		log.Println("Loading RSA key from PEM file ", externalKeyPemFile, "...")
@@ -75,7 +75,7 @@ func initPrivateKey(envKeyPemFile string, tk *broKeysImpl) {
 	}
 
 	log.Println("Generating new RSA key...")
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	privateKey, err := rsa.GenerateKey(rand.Reader, defaultKeyBits)
 	if err != nil {
 		log.Panicf("failed to generate RSA key: %v", err)
 	}

@@ -12,6 +12,7 @@ func init_token_keys() {
 		"OAUTH2_BRO_TOKEN_RSA_KEY_ID",
 		"OAUTH2_BRO_TOKEN_EXPIRATION_SECONDS",
 		300,
+		2048,
 	)
 
 	if err != nil || keys == nil {

@@ -16,6 +16,7 @@ func init_refresh_keys() {
 		"OAUTH2_BRO_REFRESH_RSA_KEY_ID",
 		"OAUTH2_BRO_REFRESH_EXPIRATION_SECONDS",
 		60*60*24*10,
+		4096,
 	)
 
 	if err != nil || keys == nil {
