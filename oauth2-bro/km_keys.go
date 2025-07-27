@@ -11,6 +11,8 @@ type BroKeys interface {
 	ExpirationSeconds() int
 
 	SigningMethod() *gojwt.SigningMethodRSA
+
+	RenderJwtToken(claims gojwt.MapClaims) (string, error)
 }
 
 type broKeysImpl struct {

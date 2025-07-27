@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -60,19 +59,20 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//TODO: include additional information from the request, to re-validate again
+	codeToken, err := SignCodeToken()
+	if err != nil {
+		badRequest(w, r, "Failed to sign code token. "+err.Error())
+		return
+	}
+
 	//TODO: check redirect URL schema
 	redirectParams.Set("state", state)
-	redirectParams.Set("code", "TODO: it is not the code")
+	redirectParams.Set("code", codeToken)
 
 	parsedRedirectUri.RawQuery = redirectParams.Encode()
 	redirectUri = parsedRedirectUri.String()
 
 	log.Println("Bro redirects the auth to: ", redirectUri)
 	http.Redirect(w, r, redirectUri, http.StatusFound)
-}
-
-func badRequest(w http.ResponseWriter, _ *http.Request, message string) {
-	fmt.Println("Bad Request. \n\n" + message)
-	w.WriteHeader(400)
-	_, _ = w.Write([]byte("Bad Request. \n\n" + message))
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -21,4 +22,10 @@ func wrapResponse(handler func(http.ResponseWriter, *http.Request)) func(http.Re
 		writer.Header().Set("X-oauth2-bro-version", version)
 		handler(writer, request)
 	}
+}
+
+func badRequest(w http.ResponseWriter, _ *http.Request, message string) {
+	fmt.Println("Bad Request. \n\n" + message)
+	w.WriteHeader(400)
+	_, _ = w.Write([]byte("Bad Request. \n\n" + message))
 }

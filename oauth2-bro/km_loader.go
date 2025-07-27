@@ -13,9 +13,9 @@ import (
 )
 
 // NewKeys creates a new broKeysImpl with the specified environment variable names and initializes it
-func NewKeys(envKeyPemFile, envKeyId, envExpirationSeconds string) (BroKeys, error) {
+func NewKeys(envKeyPemFile, envKeyId, envExpirationSeconds string, defaultExpirationSeconds int) (BroKeys, error) {
 	tk := &broKeysImpl{}
-	initExpirationSeconds(envExpirationSeconds, tk)
+	initExpirationSeconds(envExpirationSeconds, tk, defaultExpirationSeconds)
 	initPrivateKey(envKeyPemFile, tk)
 	initKeyId(envKeyId, tk)
 	return tk, nil
@@ -83,11 +83,11 @@ func initPrivateKey(envKeyPemFile string, tk *broKeysImpl) {
 	tk.privateKey = privateKey
 }
 
-func initExpirationSeconds(envExpirationSeconds string, tk *broKeysImpl) {
+func initExpirationSeconds(envExpirationSeconds string, tk *broKeysImpl, defaultExpirationSeconds int) {
 	// Initialize expiration seconds
 	tokenExpirationText := os.Getenv(envExpirationSeconds)
 	if len(tokenExpirationText) == 0 {
-		tk.expirationSeconds = 300
+		tk.expirationSeconds = defaultExpirationSeconds
 		return
 	}
 

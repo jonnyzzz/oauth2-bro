@@ -6,7 +6,6 @@ import (
 	gojwt "github.com/golang-jwt/jwt/v5"
 	"log"
 	"net/http"
-	"time"
 )
 
 func token(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +42,19 @@ func token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		ok, err := ValidateCodeToken(code)
+		if err != nil {
+			badRequest(w, r, "Failed to validate code token "+err.Error())
+			return
+		}
+
+		if !ok {
+			badRequest(w, r, "Invalid code token")
+			return
+		}
+
+		//TODO: remember visited code to reject it next time
+
 		renderTokenResponse(w, r, "toolbox.admin")
 		return
 	}
@@ -66,18 +78,13 @@ type TokenResponse struct {
 }
 
 func renderTokenResponse(w http.ResponseWriter, r *http.Request, username string) {
-	token := gojwt.NewWithClaims(TokenKeys.SigningMethod(), gojwt.MapClaims{
-		"exp":   time.Now().Add(time.Duration(TokenKeys.ExpirationSeconds()) * time.Second).Unix(),
+	tokenString, err := TokenKeys.RenderJwtToken(gojwt.MapClaims{
 		"sid":   username,
 		"sub":   username,
 		"name":  username,
 		"email": fmt.Sprint(username, "@example.com"),
 	})
 
-	token.Header["kid"] = TokenKeys.KeyId()
-
-	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(TokenKeys.PrivateKey())
 	if err != nil {
 		badRequest(w, r, "Failed to sign new token for username="+username+" "+err.Error())
 		return
