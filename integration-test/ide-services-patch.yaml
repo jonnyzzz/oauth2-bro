@@ -1,0 +1,10 @@
+tbe:
+  auth:
+    login-url: 'http://localhost:8085/login'
+    token-url: 'http://mock-auth:8085/token'
+    jwt-certs-url: 'http://mock-auth:8085/jwks'
+    root-admin-emails:
+      - 'toolbox.admin@example.com'
+    root-admin-subjects:
+      - '123'
+

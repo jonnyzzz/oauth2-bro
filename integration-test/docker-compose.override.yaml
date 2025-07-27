@@ -1,0 +1,22 @@
+## this docker compose file is applied on top of docker-compose.yaml
+## of IDE Services demo package -- tbe-demo, which is extracted
+## and prepared by the script.
+services:
+  mock-auth:
+    build:
+      context: ../../oauth2-bro/
+      dockerfile: Dockerfile
+
+    image: !reset null
+    environment:
+      - OAUTH2_BRO_BIND_PORT=8085
+      - OAUTH2_BRO_BIND_HOST=0.0.0.0
+
+  tbe-server:
+    volumes:
+      - ../ide-services-patch.yaml:/tmp-bro/ide-services-patch.yaml
+    environment:
+      ## we have to copy the original value and patch to include the second config file
+      - JAVA_TOOL_OPTIONS=-Dspring.config.additional-location=file:/tmp/application-demo.yml,file:/tmp-bro/ide-services-patch.yaml -Dtbe.deployment.import-machine-config-path=/tmp/your-company-machine-config.json
+
+
