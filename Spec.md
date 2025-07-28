@@ -4,15 +4,16 @@ OAuth2-bro Specification
 
 The OAuth2 server is working as follows
 - sid and sub of users is `ip-<ip with - as separator>`
-- every JTW access and ID tokens are JWT
+- client IP addresses are extracted from HTTP requests using various headers including X-Forwarded-For, X-Real-IP, Forwarded, X-Client-IP, CF-Connecting-IP, True-Client-IP, and falling back to RemoteAddr
+- every JWT access and ID tokens are JWT
 - refresh token is also JWT
 - we keep list of public keys for access tokens
 - we keep list of public keys for refresh tokens
 - the service uses it's main private key for access/id tokens
 - the server uses it's another main private key for refresh tokens
-- all configuration parameters can be read from the configuration file or environment variables 
-- the server lists all token public keys as JWKs
-- additionally, we let the server list all refresh tokens as another JWKs
+- all configuration parameters can be read from ~~the configuration file or~~ environment variables 
+- the server lists ~~all~~ token public keys as JWKs via the `/jwks` endpoint
+- ~~additionally, we let the server list all refresh tokens as another JWKs~~ (not implemented in current version)
 - the server can run HTTPS, given it receives the certificate and private keys to do so (we still recommend terminate HTTPS at a load balancer level)
 - the server is built minimalistic to allow wide range of deployments, from docker to kubernetes and cloud providers
 
@@ -121,6 +122,8 @@ Endpoints
 
 `/health` can be used for monitoring purposes 
 
+`/jwks` provides the JSON Web Key Set (JWKS) containing the public key for token validation
+
 `/login` the OAuth2 / OpenId Connect endpoint to start the login, here the OAuth2-bro makes the login happen automatically without actually showing any pages
 
 `/token` the endpoint to complete the OAuth2 login flow or refresh a token.
@@ -161,12 +164,12 @@ Having these parts unknown, we can still define the following concepts
 * the `code` response to be a JWT token, with 5 seconds lifetime, and
   yet another internal to OAuth2-bro list of accepted public keys. This way it can
   allow any node to handle the code request
-* each node remembers requested `code` to allow it working only once. The cache TTL is also included.
+* ~~each node remembers requested `code` to allow it working only once. The cache TTL is also included.~~ (not implemented in current version - code tokens can be used multiple times within their lifetime)
 * refresh token is yet another JWT token with yet another list of accepted public keys. It is
   up to the service administrator to define the lifetime or presence of the refresh token.
-* OAuth2-bro must re-validate that refresh token matches the same network parameters, as
+* ~~OAuth2-bro must re-validate that refresh token matches the same network parameters, as
   it was on the moment of the initial login. It means we include encrypted/hashed data in the
-  refresh token JWT to use for validation
+  refresh token JWT to use for validation~~ (not implemented in current version - refresh tokens are validated for signature and expiration only)
 
 
 On the Client ID and Secret
@@ -223,6 +226,6 @@ Key Generation
 It is usually a task to generate a key, public key, certificate. There are
 way to many services and tools which can help with that. 
 
-To simplify operations, we include the necessary commands directly to the
-`oauth2-bro` tool. TBD
+~~To simplify operations, we include the necessary commands directly to the
+`oauth2-bro` tool. TBD~~ (not implemented in current version - use external tools for key generation)
 
