@@ -8,6 +8,7 @@ import (
 type BroInnerKeys interface {
 	SignInnerToken(userInfo *UserInfo) (string, error)
 	ValidateInnerToken(tokenString string) (*UserInfo, error)
+	ToBroKeys() BroKeys
 }
 
 type broInnerKeysImpl struct {
@@ -20,6 +21,10 @@ func NewInnerKeys(Keys BroKeys, broVersion string) BroInnerKeys {
 		Keys:       Keys,
 		broVersion: broVersion,
 	}
+}
+
+func (tk *broInnerKeysImpl) ToBroKeys() BroKeys {
+	return tk.Keys
 }
 
 func (tk *broInnerKeysImpl) SignInnerToken(userInfo *UserInfo) (string, error) {

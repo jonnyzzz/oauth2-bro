@@ -53,6 +53,8 @@ HTTP Server
 
 `OAUTH2_BRO_CLIENT_CREDENTIALS` -- optional, the list of clientId and clientSecret in the format like `"client1=secret1,client2=secret2,client3=secret3"`
 
+`OAUTH2_BRO_MAKE_ROOT_SECRET` -- required for Make me Root functionality, the secret used to validate the cookieSecret parameter
+
 
 Auth Scenarios
 -----
@@ -244,12 +246,23 @@ Solution: Create a specialized endpoint and the cookie to make the specific
 browser as admin. 
 
 Implementation idea: 
-We add additional handler in the `/login` endpoint to get cookieSecret, sid, sub, name and email claims,
+We add additional handler in the `/login` endpoint to get `cookieSecret`, `sid`, `sub`, `name`, and `email` claims,
 the implementation of that handle will set the cookie with a refresh-token inside to map to that user. 
-The cookie lifetime should be controlled as additional parameter or be equal to the refresh token lifetime.
+The cookie lifetime should be controlled as an additional parameter or be equal to the refresh token lifetime.
 There has to be only selected clientId used for that process, it has to be explicit, even if no other IDs are set.
 
 Once the ordinary `/login` handler is executed as a part of usual login flow, we must check for the 
 cookie, and if it's set, use the data to proceed. The cookie has to be removed after login. 
 
-Both sid and sub should copy value if only one is set. name is copied to sid and sub if they are not set. email is copied to all if others not set.
+Example URL:
+```
+http://localhost:8085/login?cookieSecret=your-secret&sid=toolbox.admin
+```
+
+This will set a cookie in your browser that will be used during the next regular 
+login flow to authenticate you as the specified user. After successful login, the 
+cookie will be removed.
+
+It might be better to supply a signed URL similar to AWS's approach, where cookieSecret
+is never the original secret, but a temporary token. TBD.
+

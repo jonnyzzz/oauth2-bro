@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 )
@@ -300,6 +301,306 @@ func TestOAuth2CodeFlow(t *testing.T) {
 				t.Errorf("Expected expires_in > 0, got %d", tokenResponse.ExpiresIn)
 			}
 		})
+	})
+}
+
+func TestMakeRootFunctionality(t *testing.T) {
+	// Call all the init_* functions to initialize the system
+	init_token_keys()
+	init_jwks()
+	init_code_keys()
+	init_refresh_keys()
+	init_client_id()
+
+	// Set up environment variables for the test
+	os.Setenv("OAUTH2_BRO_MAKE_ROOT_SECRET", "test-secret")
+	defer os.Unsetenv("OAUTH2_BRO_MAKE_ROOT_SECRET")
+
+	// Create a test server
+	server := httptest.NewServer(http.DefaultServeMux)
+	defer server.Close()
+
+	// Test setting the Make me Root cookie
+	t.Run("Set Make me Root cookie", func(t *testing.T) {
+		// Create a client that doesn't follow redirects
+		client := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+
+		// Set up the Make me Root request parameters
+		makeRootURL := fmt.Sprintf("%s/login?cookieSecret=test-secret&sid=admin-user&email=admin@example.com",
+			server.URL)
+
+		// Make the request to set the Make me Root cookie
+		resp, err := client.Get(makeRootURL)
+		if err != nil {
+			t.Fatalf("Failed to make request to set Make me Root cookie: %v", err)
+		}
+		defer resp.Body.Close()
+
+		// Check that the response is successful
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			t.Fatalf("Expected status code %d, got %d. Response: %s", http.StatusOK, resp.StatusCode, string(body))
+		}
+
+		// Check that the response contains the success message
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("Failed to read response body: %v", err)
+		}
+		if !strings.Contains(string(body), "Make me Root cookie set successfully") {
+			t.Errorf("Expected success message, got: %s", string(body))
+		}
+
+		// Check that the cookie was set
+		cookies := resp.Cookies()
+		var makeRootCookie *http.Cookie
+		cookieName := "oauth2-bro-make-me-root" // Default value
+		for _, cookie := range cookies {
+			if cookie.Name == cookieName {
+				makeRootCookie = cookie
+				break
+			}
+		}
+		if makeRootCookie == nil {
+			t.Fatal("Make me Root cookie not set")
+		}
+
+		// Test using the Make me Root cookie for login
+		t.Run("Use Make me Root cookie for login", func(t *testing.T) {
+			// Create a client with redirect following disabled
+			client := &http.Client{
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				},
+			}
+
+			// Set up the login request parameters
+			loginURL := fmt.Sprintf("%s/login?response_type=code&client_id=tbe-server&redirect_uri=%s&state=test-state",
+				server.URL, url.QueryEscape(server.URL+"/callback"))
+
+			// Create a request with the Make me Root cookie
+			req, err := http.NewRequest("GET", loginURL, nil)
+			if err != nil {
+				t.Fatalf("Failed to create request: %v", err)
+			}
+			req.AddCookie(makeRootCookie)
+
+			// Make the request to the login endpoint
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("Failed to make request to login endpoint: %v", err)
+			}
+			defer resp.Body.Close()
+
+			// Check that the response is a redirect
+			if resp.StatusCode != http.StatusFound {
+				t.Errorf("Expected status code %d, got %d", http.StatusFound, resp.StatusCode)
+			}
+
+			// Get the redirect URL
+			redirectURL := resp.Header.Get("Location")
+			if redirectURL == "" {
+				t.Fatalf("No redirect URL in response")
+			}
+
+			// Parse the redirect URL to extract the code
+			parsedURL, err := url.Parse(redirectURL)
+			if err != nil {
+				t.Fatalf("Failed to parse redirect URL: %v", err)
+			}
+
+			// Extract the code and state from the query parameters
+			queryParams := parsedURL.Query()
+			code := queryParams.Get("code")
+			state := queryParams.Get("state")
+
+			if code == "" {
+				t.Fatalf("No code in redirect URL")
+			}
+
+			if state != "test-state" {
+				t.Errorf("Expected state 'test-state', got '%s'", state)
+			}
+
+			// Check that the Make me Root cookie was removed
+			cookies := resp.Cookies()
+			cookieName := "oauth2-bro-make-me-root" // Default value
+			for _, cookie := range cookies {
+				if cookie.Name == cookieName {
+					if cookie.MaxAge != -1 {
+						t.Errorf("Expected Make me Root cookie to be removed, but it was not")
+					}
+				}
+			}
+
+			// Test that the user info is correctly set in the access token
+			t.Run("Verify user info in access token", func(t *testing.T) {
+				// Set up the token request parameters
+				tokenData := url.Values{}
+				tokenData.Set("grant_type", "authorization_code")
+				tokenData.Set("client_id", "tbe-server")
+				tokenData.Set("client_secret", "bacd3019-c3b9-4b31-98d5-d3c410a1098e") // Using a dummy client secret
+				tokenData.Set("code", code)
+				tokenData.Set("redirect_uri", server.URL+"/callback")
+
+				// Make the request to the token endpoint
+				tokenResp, err := http.PostForm(server.URL+"/token", tokenData)
+				if err != nil {
+					t.Fatalf("Failed to make request to token endpoint: %v", err)
+				}
+				defer tokenResp.Body.Close()
+
+				// Check that the response is successful
+				if tokenResp.StatusCode != http.StatusOK {
+					body, _ := io.ReadAll(tokenResp.Body)
+					t.Fatalf("Expected status code %d, got %d. Response: %s", http.StatusOK, tokenResp.StatusCode, string(body))
+				}
+
+				// Parse the response body
+				tokenBody, err := io.ReadAll(tokenResp.Body)
+				if err != nil {
+					t.Fatalf("Failed to read token response body: %v", err)
+				}
+
+				var tokenResponse TokenResponse
+				err = json.Unmarshal(tokenBody, &tokenResponse)
+				if err != nil {
+					t.Fatalf("Failed to parse token response: %v", err)
+				}
+
+				// Fetch JWKS data from the server
+				jwksResp, err := http.Get(server.URL + "/jwks")
+				if err != nil {
+					t.Fatalf("Failed to fetch JWKS data: %v", err)
+				}
+				defer jwksResp.Body.Close()
+
+				jwksBody, err := io.ReadAll(jwksResp.Body)
+				if err != nil {
+					t.Fatalf("Failed to read JWKS response body: %v", err)
+				}
+
+				// Parse JWKS data
+				var keys Keys
+				err = json.Unmarshal(jwksBody, &keys)
+				if err != nil {
+					t.Fatalf("Failed to parse JWKS data: %v", err)
+				}
+
+				if len(keys.Keys) == 0 {
+					t.Fatal("No keys found in JWKS data")
+				}
+
+				// Extract public key from JWKS
+				key := keys.Keys[0]
+				keySpec, err := key.ParseKeySpec()
+				if err != nil {
+					t.Fatalf("Failed to parse key spec from JWK: %v", err)
+				}
+
+				rsaPublicKey, ok := keySpec.Key.(*rsa.PublicKey)
+				if !ok {
+					t.Fatal("Failed to cast public key to RSA public key")
+				}
+
+				// Define a struct for the token claims
+				type TokenClaims struct {
+					Sid   string `json:"sid"`
+					Sub   string `json:"sub"`
+					Name  string `json:"name"`
+					Email string `json:"email"`
+					jwt.RegisteredClaims
+				}
+
+				// Parse the access token to extract the claims
+				var claims TokenClaims
+				_, err = jwt.ParseWithClaims(tokenResponse.AccessToken, &claims, func(token *jwt.Token) (interface{}, error) {
+					// Validate signing method
+					if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+						return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+					}
+					return rsaPublicKey, nil
+				})
+				if err != nil {
+					t.Fatalf("Failed to parse access token claims: %v", err)
+				}
+
+				// Verify that the claims match the user info set in the cookie
+				if claims.Sid != "admin-user" {
+					t.Errorf("Expected sid 'admin-user', got '%s'", claims.Sid)
+				}
+				if claims.Sub != "admin-user" {
+					t.Errorf("Expected sub 'admin-user', got '%s'", claims.Sub)
+				}
+				// Name is set to email when name is not explicitly provided
+				if claims.Name != "admin@example.com" {
+					t.Errorf("Expected name 'admin@example.com', got '%s'", claims.Name)
+				}
+				if claims.Email != "admin@example.com" {
+					t.Errorf("Expected email 'admin@example.com', got '%s'", claims.Email)
+				}
+
+				t.Logf("User info in access token verified successfully")
+			})
+		})
+	})
+
+	// Test with invalid cookieSecret
+	t.Run("Invalid cookieSecret", func(t *testing.T) {
+		// Create a client that doesn't follow redirects
+		client := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+
+		// Set up the Make me Root request parameters with invalid cookieSecret
+		makeRootURL := fmt.Sprintf("%s/login?cookieSecret=invalid-secret&sid=admin-user&email=admin@example.com&response_type=code&client_id=tbe-server&redirect_uri=%s&state=test-state",
+			server.URL, url.QueryEscape(server.URL+"/callback"))
+
+		// Make the request to set the Make me Root cookie
+		resp, err := client.Get(makeRootURL)
+		if err != nil {
+			t.Fatalf("Failed to make request: %v", err)
+		}
+		defer resp.Body.Close()
+
+		// Check that the request was redirected (normal login flow)
+		if resp.StatusCode != http.StatusFound {
+			t.Errorf("Expected status code %d, got %d", http.StatusFound, resp.StatusCode)
+		}
+	})
+
+	// Test with missing user info parameters
+	t.Run("Missing user info parameters", func(t *testing.T) {
+		// Set up the Make me Root request parameters without user info
+		makeRootURL := fmt.Sprintf("%s/login?cookieSecret=test-secret",
+			server.URL)
+
+		// Make the request to set the Make me Root cookie
+		resp, err := http.Get(makeRootURL)
+		if err != nil {
+			t.Fatalf("Failed to make request: %v", err)
+		}
+		defer resp.Body.Close()
+
+		// Check that the response is a bad request
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+
+		// Check that the response contains the error message
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("Failed to read response body: %v", err)
+		}
+		if !strings.Contains(string(body), "At least one of sid, sub, name, or email must be provided") {
+			t.Errorf("Expected error message about missing user info, got: %s", string(body))
+		}
 	})
 }
 

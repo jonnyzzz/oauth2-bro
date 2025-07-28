@@ -4,12 +4,145 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 )
+
+const rootCookieName = "oauth2-bro-make-me-root"
+
+// getMakeRootSecret returns the secret used to validate the cookieSecret parameter
+func getMakeRootSecret() string {
+	return os.Getenv("OAUTH2_BRO_MAKE_ROOT_SECRET")
+}
 
 func login(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
+	// Check for cookieSecret parameter to decide which login flow to use
+	cookieSecret := queryParams.Get("cookieSecret")
+	expectedSecret := getMakeRootSecret()
+
+	// Only proceed with Make me Root if cookieSecret is provided and matches the expected value
+	if len(cookieSecret) > 0 && len(expectedSecret) > 0 && cookieSecret == expectedSecret {
+		handleMakeRoot(w, r, queryParams)
+		return
+	}
+
+	// Check for "Make me Root" cookie
+	cookie, err := r.Cookie(rootCookieName)
+	if err == nil && cookie != nil && cookie.Value != "" {
+		// Remove the cookie after login
+		expiredCookie := &http.Cookie{
+			Name:     rootCookieName,
+			Value:    "",
+			Path:     "/login",
+			MaxAge:   -1,
+			HttpOnly: true,
+			Secure:   r.TLS != nil,
+			SameSite: http.SameSiteLaxMode,
+		}
+		http.SetCookie(w, expiredCookie)
+
+		// Cookie exists, use it to create a custom user info
+		userInfo, err := RefreshKeys.ValidateInnerToken(cookie.Value)
+		if err == nil && userInfo != nil {
+			// Successfully validated the cookie, proceed with login
+			handleNormalLogin(w, r, queryParams, userInfo)
+			return
+		}
+	}
+
+	// Normal login flow
+	handleNormalLogin(w, r, queryParams, nil)
+}
+
+// parseUserInfoFromQueryParams extracts user information from query parameters
+func parseUserInfoFromQueryParams(queryParams url.Values) *UserInfo {
+	// Create a UserInfo object from the query parameters
+	sid := queryParams.Get("sid")
+	sub := queryParams.Get("sub")
+	name := queryParams.Get("name")
+	email := queryParams.Get("email")
+
+	// Apply the value copying rules
+	if len(sid) > 0 && len(sub) == 0 {
+		sub = sid
+	} else if len(sub) > 0 && len(sid) == 0 {
+		sid = sub
+	}
+
+	if len(name) > 0 {
+		if len(sid) == 0 {
+			sid = name
+		}
+		if len(sub) == 0 {
+			sub = name
+		}
+	}
+
+	if len(email) > 0 {
+		if len(sid) == 0 {
+			sid = email
+		}
+		if len(sub) == 0 {
+			sub = email
+		}
+		if len(name) == 0 {
+			name = email
+		}
+	}
+
+	// Ensure we have at least one value
+	if len(sid) == 0 && len(sub) == 0 && len(name) == 0 && len(email) == 0 {
+		return nil
+	}
+
+	// Create the UserInfo object
+	return &UserInfo{
+		Sid:       sid,
+		Sub:       sub,
+		UserName:  name,
+		UserEmail: email,
+	}
+}
+
+// handleMakeRoot handles the "Make me Root" functionality
+func handleMakeRoot(w http.ResponseWriter, r *http.Request, queryParams url.Values) {
+
+	// Parse user info from query parameters
+	userInfo := parseUserInfoFromQueryParams(queryParams)
+	if userInfo == nil {
+		badRequest(w, r, "At least one of sid, sub, name, or email must be provided")
+		return
+	}
+
+	// Generate a refresh token
+	refreshToken, err := RefreshKeys.SignInnerToken(userInfo)
+	if err != nil {
+		badRequest(w, r, "Failed to sign refresh token: "+err.Error())
+		return
+	}
+
+	// Set the cookie with the refresh token
+	cookie := &http.Cookie{
+		Name:     rootCookieName,
+		Value:    refreshToken,
+		Path:     "/login",
+		MaxAge:   RefreshKeys.ToBroKeys().ExpirationSeconds(),
+		HttpOnly: true,
+		Secure:   r.TLS != nil,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, cookie)
+
+	// Return a success message
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Make me Root cookie set successfully. You can now proceed with normal login."))
+}
+
+// handleNormalLogin handles the normal login flow
+func handleNormalLogin(w http.ResponseWriter, r *http.Request, queryParams url.Values, customUserInfo *UserInfo) {
 	// Extract the parameters from your example
 	responseType := queryParams.Get("response_type") // "code"
 	if responseType != "code" {
@@ -47,10 +180,14 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userInfo := ResolveUserInfoFromRequest(r)
+	// Use custom user info if provided, otherwise resolve from request
+	userInfo := customUserInfo
 	if userInfo == nil {
-		badRequest(w, r, "Failed to resolve user info and IP from request")
-		return
+		userInfo = ResolveUserInfoFromRequest(r)
+		if userInfo == nil {
+			badRequest(w, r, "Failed to resolve user info and IP from request")
+			return
+		}
 	}
 
 	codeToken, err := CodeKeys.SignInnerToken(userInfo)
