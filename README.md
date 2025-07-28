@@ -1,6 +1,6 @@
 # OAuth2-bro
 
-![OAuth2-bro logo](https://private-user-images.githubusercontent.com/256431/471066935-83601875-ba6f-4366-a775-a55e9384222e.png)
+<img width="20%" alt="OAuth2-bro logo" src="https://github.com/user-attachments/assets/83601875-ba6f-4366-a775-a55e9384222e" />
 
 OAuth2 server that authenticates users based on their IP address - no client credentials needed.
 Perfect for internal services, development environments, and regulated businesses.
