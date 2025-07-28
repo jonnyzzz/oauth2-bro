@@ -33,6 +33,7 @@ func main() {
 	init_code_keys()
 	init_refresh_keys()
 	init_client_id()
+	init_ip_masks()
 
 	addr := resolveBindAddress()
 	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_FILE")

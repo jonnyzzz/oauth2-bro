@@ -45,6 +45,10 @@ HTTP Server
 
 `OAUTH2_BRO_REFRESH_EXPIRATION_SECONDS` -- optional, expiration of code response, default 10 days in seconds
 
+`OAUTH2_BRO_EMAIL_DOMAIN` -- the domain of email addresses which we create for IP address users
+
+`OAUTH2_BRO_ALLOWED_IP_MASKS` -- optional, comma-separated list of IP address masks in CIDR notation (e.g., "192.168.1.0/24,10.0.0.0/8,2001:db8::/32") to filter which IP addresses are allowed to be processed for user information. Supports both IPv4 and IPv6 masks. If not set or empty, all IP addresses are allowed.
+
 Auth Scenarios
 -----
 
