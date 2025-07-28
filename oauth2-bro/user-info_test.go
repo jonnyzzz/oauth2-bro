@@ -1,17 +1,17 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 )
 
 // Helper function to create the expected hash for testing
 func createExpectedHash(ip string) string {
-	hash := sha256.Sum256([]byte(ip))
-	return base64.RawURLEncoding.EncodeToString(hash[:])
+	username := strings.ReplaceAll(ip, ".", "-")
+	username = strings.ReplaceAll(username, ":", "-")
+	return "ip-" + username
 }
 
 func TestIsIPAllowed(t *testing.T) {

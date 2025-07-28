@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -118,8 +116,6 @@ func ResolveUserInfoFromRequest(r *http.Request) *UserInfo {
 	username := createUsernameFromIP(normalizedIP)
 
 	// Create hash from IP for Sid and Sub
-	hash := createHashFromIP(normalizedIP)
-
 	// Create and return UserInfo
 	email := ""
 	emailDomain := os.Getenv("OAUTH2_BRO_EMAIL_DOMAIN")
@@ -128,8 +124,8 @@ func ResolveUserInfoFromRequest(r *http.Request) *UserInfo {
 	}
 
 	return &UserInfo{
-		Sid:       hash,
-		Sub:       hash,
+		Sid:       username,
+		Sub:       username,
 		UserName:  username,
 		UserEmail: email,
 	}
@@ -221,16 +217,4 @@ func createUsernameFromIP(ip string) string {
 	username = "ip-" + username
 
 	return username
-}
-
-// createHashFromIP creates a base64 URL-encoded SHA-256 hash from the IP address.
-func createHashFromIP(ip string) string {
-	// Create SHA-256 hash of the IP
-	hash := sha256.Sum256([]byte(ip))
-
-	// Encode the hash using base64 URL encoding
-	// RawURLEncoding is used to avoid padding characters (=)
-	encoded := base64.RawURLEncoding.EncodeToString(hash[:])
-
-	return encoded
 }
