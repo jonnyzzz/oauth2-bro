@@ -1,223 +1,213 @@
 # OAuth2-bro
-OAuth2 server implementation with implicit authentication and authorization. 
 
-<img width="20%" alt="OAuth2-bro logo" src="https://github.com/user-attachments/assets/83601875-ba6f-4366-a775-a55e9384222e" />
+![OAuth2-bro logo](https://private-user-images.githubusercontent.com/256431/471066935-83601875-ba6f-4366-a775-a55e9384222e.png)
 
-License
--------
+OAuth2 server that authenticates users based on their IP address - no client credentials needed.
+Perfect for internal services, development environments, and regulated businesses.
 
-Apache 2.0, see [LICENSE](LICENSE) file in the repository
+## 🎯 What it does
 
-Why?
-----
+OAuth2-bro simplifies authentication by:
+- **Authenticating** users based on their request IP address (who you are)
+- **Authorizing** access to resources without managing client IDs/secrets (what you can access)
+- Providing standard OAuth2 flows for seamless integration
+- Supporting stateless, multi-node deployments
 
-The main use case for this authentication server is to establish **implicit** authentication of users,
-to allow more seamless integration with corporate authentication and authorization systems. 
+## 🚀 Quick Start
 
-Eugene is focused on establishing management, security, and governance of AI and Developer Tools at a scale of companies.
-His main focus is on [JetBrains IDE Services](https://jetbrains.com/ide-services), and this server is created to
-support customers' requests. 
+```bash
+# Using Docker
+docker run -p 8077:8077 oauth2-bro
 
-The naming comes from 1984's Big Brother story 
+# Or build from source
+docker build -t oauth2-bro .
+docker run -p 8077:8077 oauth2-bro
+```
 
-Use Cases
----------
+Your OAuth2 server is now running at `http://localhost:8077`
 
-In environments where authentication is not needed or not yet needed. Examples of such environments are
-* University classrooms (where computers are still reused by students)
-* Remote machines, which are getting popular in remote development scenarios or regulated businesses
-* Implicit auth* scenarios
-* Integration with corporate-deployed authorization/authentication systems
-* Means to authorize machines, instead of humans
+## 📋 Use Cases
 
-The OAuth2-bro server is compatible with the on-premises and the SaaS version of JetBrains IDE Services. 
+- **University classrooms** - Shared computers with rotating users
+- **Remote development** - Secure access to development machines without credential distribution
+- **Internal microservices** - Skip credential management for services behind your firewall
+- **Machine-to-machine auth** - Authorize services based on their network location
+- **Corporate integration** - Bridge to existing authentication systems
+- **Development environments** - Quick auth setup without the complexity
 
-Eugene believes there are many more use cases for that authentication server, which can be later added. 
+## 🔒 Security Considerations
 
-Environment Variables
---------------------
+⚠️ **Important**: IP-based authentication is only secure in trusted environments:
+- Use only behind firewalls or VPNs
+- Not suitable for public-facing services
+- Consider the risk of IP spoofing in your environment
+- Always use HTTPS in production
+- Configure `OAUTH2_BRO_ALLOWED_IP_MASKS` to restrict access
 
-OAuth2-bro is configured using environment variables:
+## ⚙️ Configuration
 
-### HTTP Server Configuration
-- `OAUTH2_BRO_BIND_PORT` - The server port to bind (default: 8077)
-- `OAUTH2_BRO_BIND_HOST` - The server bind host address (default: localhost)
-- `OAUTH2_BRO_HTTPS_CERT_FILE` - Path to PEM encoded certificate file for HTTPS (optional)
-- `OAUTH2_BRO_HTTPS_CERT_KEY_FILE` - Path to PEM encoded private key file for HTTPS (optional)
+OAuth2-bro uses environment variables for all configuration:
+
+### Basic Settings
+
+| Variable | Description                                                              | Default |
+|----------|--------------------------------------------------------------------------|---------|
+| `OAUTH2_BRO_BIND_PORT` | Server port                                                              | 8077 |
+| `OAUTH2_BRO_BIND_HOST` | Bind address                                                             | localhost |
+| `OAUTH2_BRO_EMAIL_DOMAIN` | Domain for generated emails (e.g., `ip-127-0-0-1@your-domain`)           | - |
+| `OAUTH2_BRO_ALLOWED_IP_MASKS` | Comma-separated CIDR ranges (e.g., "10.0.0.0/8,192.168.0.0/16")          | - |
+| `OAUTH2_BRO_CLIENT_CREDENTIALS` | Optional clientId/secret credentials ("client1=secret1,client2=secret2") | - |
+
+### HTTPS Configuration (optional)
+
+| Variable | Description |
+|----------|-------------|
+| `OAUTH2_BRO_HTTPS_CERT_FILE` | Path to PEM encoded certificate |
+| `OAUTH2_BRO_HTTPS_CERT_KEY_FILE` | Path to PEM encoded private key |
+
 
 ### Token Configuration
 
-If parameters are not set, the key is generated automatically, it will not work in
-multi-node setup
+For production deployments, especially multi-node setups, provide your own RSA keys:
 
-- `OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE` - Path to PEM encoded private key file for access tokens (optional)
-- `OAUTH2_BRO_TOKEN_RSA_KEY_ID` - Key ID for access tokens (default: public key hash hex)
-- `OAUTH2_BRO_TOKEN_EXPIRATION_SECONDS` - Access/ID token lifetime in seconds (default: 300)
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE` | Path to token signing key (2048-bit RSA) | Auto-generated |
+| `OAUTH2_BRO_TOKEN_EXPIRATION_SECONDS` | Access token lifetime | 300 (5 min) |
+| `OAUTH2_BRO_CODE_RSA_KEY_PEM_FILE` | Path to code signing key (2048-bit RSA) | Auto-generated |
+| `OAUTH2_BRO_CODE_EXPIRATION_SECONDS` | Authorization code lifetime | 5 |
+| `OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE` | Path to refresh token key (4096-bit RSA) | Auto-generated |
+| `OAUTH2_BRO_REFRESH_EXPIRATION_SECONDS` | Refresh token lifetime | 864000 (10 days) |
 
-- `OAUTH2_BRO_CODE_RSA_KEY_PEM_FILE` - Path to PEM encoded private key file for OAuth2 code responses (optional)
-- `OAUTH2_BRO_CODE_RSA_KEY_ID` - Key ID for OAuth2 code responses (default: public key hash hex)
-- `OAUTH2_BRO_CODE_EXPIRATION_SECONDS` - Expiration of code response in seconds (default: 5)
+### Admin Access
 
-- `OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE` - Path to PEM encoded private key file for OAuth2 refresh tokens (optional)
-- `OAUTH2_BRO_REFRESH_RSA_KEY_ID` - Key ID for refresh tokens (default: public key hash hex)
-- `OAUTH2_BRO_REFRESH_EXPIRATION_SECONDS` - Expiration of refresh tokens in seconds (default: 10 days)
+| Variable | Description |
+|----------|-------------|
+| `OAUTH2_BRO_MAKE_ROOT_SECRET` | Secret for admin override functionality |
 
-### User Configuration
-- `OAUTH2_BRO_EMAIL_DOMAIN` - Domain for email addresses created for IP address users, e.g. `ip-127-0-0-1@your-domain`
-- `OAUTH2_BRO_ALLOWED_IP_MASKS` - Comma-separated list of IP address masks in CIDR notation
-- `OAUTH2_BRO_CLIENT_CREDENTIALS` - List of clientId and clientSecret pairs (format: "client1=secret1,client2=secret2")
-- `OAUTH2_BRO_MAKE_ROOT_SECRET` - Secret for Make me Root functionality
+## 🔑 Key Generation
 
-Generating Keys
---------------
-
-For production deployments, especially in multi-node configurations, you should 
-generate these keys manually and provide them to the application.
-
-We only support RSA keys with RS515 JWT signatures.
-
-- **Token and Code Keys**: 2048-bit RSA keys
-- **Refresh Keys**: 4096-bit RSA keys
-
-Use the following OpenSSL commands to generate the required keys:
+For production deployments, generate RSA keys manually:
 
 ```bash
-# Generate a 2048-bit RSA private key for tokens
+# Generate 2048-bit RSA key for tokens/codes
 openssl genrsa -out token-key.pem 2048
-
-# Extract the public key (optional, for verification)
-openssl rsa -in token-key.pem -pubout -out token-key-public.pem
+openssl genrsa -out code-key.pem 2048
+openssl genrsa -out refresh-key.pem 4096
 ```
 
-Docker Deployment
-----------------
+## 🏭 Production Deployment
 
-OAuth2-bro provides a Dockerfile for easy deployment.
-You can use it to run the server locally or in production.
-
-### Building the Docker Image
+### Single Node
 
 ```bash
-cd oauth2-bro
-docker build -t oauth2-bro .
-```
-
-### Running Locally
-
-```bash
-docker run -p 8077:8077 \
-  -e OAUTH2_BRO_EMAIL_DOMAIN=example.com \
-  -e OAUTH2_BRO_MAKE_ROOT_SECRET=your-secret \
+docker run -d \
+  --name oauth2-bro \
+  --restart unless-stopped \
+  -p 443:8077 \
+  -e OAUTH2_BRO_EMAIL_DOMAIN=company.com \
+  -e OAUTH2_BRO_ALLOWED_IP_MASKS="10.0.0.0/8,192.168.0.0/16" \
+  -e OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE=/keys/token-key.pem \
+  -e OAUTH2_BRO_CODE_RSA_KEY_PEM_FILE=/keys/code-key.pem \
+  -e OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE=/keys/refresh-key.pem \
+  -e OAUTH2_BRO_HTTPS_CERT_FILE=/certs/server.crt \
+  -e OAUTH2_BRO_HTTPS_CERT_KEY_FILE=/certs/server.key \
+  -v /path/to/keys:/keys:ro \
+  -v /path/to/certs:/certs:ro \
   oauth2-bro
 ```
 
-### Production Deployment
+### Multi-Node Deployment
 
-For production use, you should configure all necessary environment variables:
+OAuth2-bro is stateless when configured with external keys. For high availability:
 
-```bash
-docker run -p 8077:8077 \
-  -e OAUTH2_BRO_EMAIL_DOMAIN=example.com \
-  -e OAUTH2_BRO_MAKE_ROOT_SECRET=your-secret \
-  -e OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE=/path/to/token-key.pem \
-  -e OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE=/path/to/refresh-key.pem \
-  -e OAUTH2_BRO_CLIENT_CREDENTIALS="client1=secret1,client2=secret2" \
-  -v /path/to/keys:/path/to/keys \
-  oauth2-bro
-```
+1. Generate RSA keys once
+2. Deploy multiple nodes with the same keys
+3. Use any load balancer (no session affinity needed)
 
-Multi-node Configuration
------------------------
+## 👑 Admin Access ("Make me Root")
 
-OAuth2-bro is designed to be stateless, making it suitable for multi-node deployments.
-In a multi-node configuration:
-
-1. All nodes should be configured with the same set of keys as environment variables
-2. Each node can operate independently without a shared state
-3. Load balancers can distribute requests across nodes without session affinity
-
-Since the application is stateless, given the same keys, a multi-node
-configuration is expected to work seamlessly. This allows for horizontal
-scaling and high availability.
-
-
-Make me Root
------------
-
-The "Make me Root" functionality allows you to authenticate as a specific 
-user (typically an admin) instead of using your IP address for authentication.
-This is particularly useful in scenarios where:
-
-- You need admin access but don't want to rely on IP-based authentication
-- You want to grant temporary admin privileges to specific browsers/sessions
-- You need to test admin functionality in development environments
-- You're working with IDE Services and need to specify admin users
-
-### How it Works
-
-When you access the special URL with the correct parameters, 
-OAuth2-bro sets a cookie in your browser containing a refresh token with 
-your specified identity. During the next regular login flow, this cookie 
-is detected and used to authenticate you as the specified user instead of 
-using your IP address. After successful login, the cookie is removed.
-
-### Example Usage
-
-To set the "Make me Root" cookie, access the following URL:
+Need to authenticate as a specific user instead of using IP-based auth? Use the admin override:
 
 ```
-http://localhost:8077/login?cookieSecret=your-secret&sid=toolbox.admin&email=toolbox.admin@example.com
+http://localhost:8077/login?cookieSecret=your-secret&sid=admin&email=admin@company.com
 ```
 
-Parameters:
-- `cookieSecret`: Must match the value set in the `OAUTH2_BRO_MAKE_ROOT_SECRET` environment variable
-- `sid`: The subject ID you want to use (e.g., "toolbox.admin")
-- `email`: The email address you want to use (e.g., "toolbox.admin@example.com")
+Do your usual login flow in the same browser.
+This sets a secure cookie that authenticates you as the specified user for subsequent OAuth2 flows.
 
-After accessing this URL, you'll receive a confirmation message. You can then proceed with 
-the normal login flow, and you'll be authenticated as the specified user.
+**Parameters:**
+- `cookieSecret`: Must match `OAUTH2_BRO_MAKE_ROOT_SECRET`
+- `sid` or `sub`: Subject ID for the user
+- `name`: Name of the user
+- `email`: Email address for the user
 
-### Security Considerations
+**Security notes:**
+- Keep your `OAUTH2_BRO_MAKE_ROOT_SECRET` secure
+- Use HTTPS in production
+- Cookie is HttpOnly and limited to the /login path, removed after login
 
-- Keep your `OAUTH2_BRO_MAKE_ROOT_SECRET` secure, as anyone with this secret can set themselves as any user
-- Use HTTPS in production to protect the cookie and request parameters
-- The cookie is set with HttpOnly flag to prevent JavaScript access
-- The cookie is limited to the /login path for security
+## 🔧 JetBrains IDE Services Integration
 
-
-JetBrains IDE Services Integration
------------------------
-
-OAuth2-bro can be easily integrated with JetBrains IDE Services. See
-the `integration-test/ide-services-patch.yaml` file for an example configuration:
+OAuth2-bro integrates seamlessly with JetBrains IDE Services. Add this to your 
+IDE Services configuration:
 
 ```yaml
 tbe:
   auth:
-    login-url: 'http://mock-auth:8085/login'
-    token-url: 'http://mock-auth:8085/token'
-    jwt-certs-url: 'http://mock-auth:8085/jwks'
+    login-url: 'http://oauth2-bro:8077/login'
+    token-url: 'http://oauth2-bro:8077/token'
+    jwt-certs-url: 'http://oauth2-bro:8077/jwks'
     root-admin-emails:
-      - 'toolbox.admin@example.com'
+      - 'admin@company.com'
     root-admin-subjects:
-      - '123'
+      - 'admin'
 ```
 
-This configuration tells IDE Services to use OAuth2-bro for authentication by pointing to
-its login, token, and JWKs endpoints. Replace `mock-auth` with the
-correct domain of OAuth2-bro deployment.
+## 🏗️ How it Works
 
-Distribution
-------------
+1. **Client requests access** - Application redirects to OAuth2-bro's `/authorize` endpoint
+2. **IP-based authentication** - OAuth2-bro identifies the user based on their IP address
+3. **Token generation** - If IP is allowed, OAuth2-bro issues JWT tokens
+4. **Resource access** - Client uses tokens to access protected resources
 
-We use the Go language to implement the server. We believe it's easier to change/patch the program to
-Implement the specific rules directly in the code (AI agents will help you!), compile, and deploy in Docker. 
+The flow follows standard OAuth2 authorization code grant, but skips the user login step by using IP addresses for authentication.
 
-We provide Docker builds and Docker images to simplify that work. 
+## 🛠️ Development
 
-Contribution
-------------
+OAuth2-bro is written in Go for easy customization. Feel free to fork and modify 
+for your specific needs:
 
-Let's collect more scenarios and rules in this repository, and let's improve the missing parts of the
-OAuth2-bro together. You are absolutely welcome to contribute. For big changes, please start with
-an issue and a discussion. 
+```bash
+# Clone the repository
+git clone https://github.com/jonnyzzz/oauth2-bro
+cd oauth2-bro
+
+# Build locally
+go build .
+
+# Run with custom logic
+./oauth2-bro
+```
+
+## 🤝 Contributing
+
+We welcome contributions! For major changes:
+1. Open an issue to discuss your idea
+2. Fork the repository
+3. Create a pull request
+
+Let's build better authentication together!
+
+## 📄 License
+
+Apache 2.0 - see [LICENSE](LICENSE) file
+
+## 🙏 Background
+
+OAuth2-bro was created by [Eugene Petrenko](https://jonnyzzz.com) to support customer
+requests at [JetBrains IDE Services](https://jetbrains.com/ide-services), focusing on 
+management, security, and governance of AI and Developer Tools at scale. The name is 
+inspired by Orwell's "1984" - but instead of watching you, this Big Brother just checks 
+your IP address!
+
