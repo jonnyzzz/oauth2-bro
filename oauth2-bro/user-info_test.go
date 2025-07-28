@@ -264,9 +264,11 @@ func TestResolveUserInfoFromRequest(t *testing.T) {
 	oldIPMasks := os.Getenv("OAUTH2_BRO_ALLOWED_IP_MASKS")
 	os.Setenv("OAUTH2_BRO_EMAIL_DOMAIN", "example.com")
 	os.Setenv("OAUTH2_BRO_ALLOWED_IP_MASKS", "") // Allow all IPs for this test
+	init_ip_masks()                              // Initialize IP masks with the new environment variable
 	defer func() {
 		os.Setenv("OAUTH2_BRO_EMAIL_DOMAIN", oldEmailDomain)
 		os.Setenv("OAUTH2_BRO_ALLOWED_IP_MASKS", oldIPMasks)
+		init_ip_masks() // Restore IP masks with the original environment variable
 	}()
 
 	tests := []struct {
