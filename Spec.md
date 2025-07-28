@@ -3,6 +3,7 @@ OAuth2-bro Specification
 
 
 The OAuth2 server is working as follows
+- sid and sub of users is `ip-<ip with - as separator>`
 - every JTW access and ID tokens are JWT
 - refresh token is also JWT
 - we keep list of public keys for access tokens
@@ -48,6 +49,9 @@ HTTP Server
 `OAUTH2_BRO_EMAIL_DOMAIN` -- the domain of email addresses which we create for IP address users
 
 `OAUTH2_BRO_ALLOWED_IP_MASKS` -- optional, comma-separated list of IP address masks in CIDR notation (e.g., "192.168.1.0/24,10.0.0.0/8,2001:db8::/32") to filter which IP addresses are allowed to be processed for user information. Supports both IPv4 and IPv6 masks. If not set or empty, all IP addresses are allowed.
+
+`OAUTH2_BRO_CLIENT_CREDENTIALS` -- optional, the list of clientId and clientSecret in the format like `"client1=secret1,client2=secret2,client3=secret3"`
+
 
 Auth Scenarios
 -----
@@ -168,9 +172,19 @@ Having these parts unknown, we can still define the following concepts
 On the Client ID and Secret
 ---
 
-The service validates client ID is listed in supported. And we validate if there
-is a secret. The client secret can be salted with the clientId and only stored that
-way in the configuration parameters of that services. It'd not yet implemented.
+The service validates client ID and secret pairs. Client authentication is configured through
+the `OAUTH2_BRO_CLIENT_CREDENTIALS` environment variable, which contains a comma-separated list
+of clientId=clientSecret pairs.
+
+Example:
+```
+export OAUTH2_BRO_CLIENT_CREDENTIALS="client1=secret1,client2=secret2,client3=secret3"
+```
+
+If this environment variable is not set or is empty, all clients are allowed.
+
+The service validates that the client ID is in the list of supported clients and that
+the provided client secret matches the configured secret for that client ID.
 
 
 
