@@ -229,3 +229,27 @@ way to many services and tools which can help with that.
 ~~To simplify operations, we include the necessary commands directly to the
 `oauth2-bro` tool. TBD~~ (not implemented in current version - use external tools for key generation)
 
+
+Make me Root
+------
+
+In addition to the idea of authentication to proxy to the next service, 
+we may implement the more simple one. 
+
+Problem: I want to be an admin, for which my email/sid has to be specified in
+the IDE Services configuration. Some may not want to allow admin access based
+in IP address only. Or an IP address is not that stable to make as admin access. 
+
+Solution: Create a specialized endpoint and the cookie to make the specific
+browser as admin. 
+
+Implementation idea: 
+We add additional handler in the `/login` endpoint to get cookieSecret, sid, sub, name and email claims,
+the implementation of that handle will set the cookie with a refresh-token inside to map to that user. 
+The cookie lifetime should be controlled as additional parameter or be equal to the refresh token lifetime.
+There has to be only selected clientId used for that process, it has to be explicit, even if no other IDs are set.
+
+Once the ordinary `/login` handler is executed as a part of usual login flow, we must check for the 
+cookie, and if it's set, use the data to proceed. The cookie has to be removed after login. 
+
+Both sid and sub should copy value if only one is set. name is copied to sid and sub if they are not set. email is copied to all if others not set.
