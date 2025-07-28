@@ -68,6 +68,27 @@ multi-node setup
 - `OAUTH2_BRO_CLIENT_CREDENTIALS` - List of clientId and clientSecret pairs (format: "client1=secret1,client2=secret2")
 - `OAUTH2_BRO_MAKE_ROOT_SECRET` - Secret for Make me Root functionality
 
+Generating Keys
+--------------
+
+For production deployments, especially in multi-node configurations, you should 
+generate these keys manually and provide them to the application.
+
+We only support RSA keys with RS515 JWT signatures.
+
+- **Token and Code Keys**: 2048-bit RSA keys
+- **Refresh Keys**: 4096-bit RSA keys
+
+Use the following OpenSSL commands to generate the required keys:
+
+```bash
+# Generate a 2048-bit RSA private key for tokens
+openssl genrsa -out token-key.pem 2048
+
+# Extract the public key (optional, for verification)
+openssl rsa -in token-key.pem -pubout -out token-key-public.pem
+```
+
 Docker Deployment
 ----------------
 
