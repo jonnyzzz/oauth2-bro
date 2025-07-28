@@ -7,19 +7,35 @@ import (
 func TestCodeIsValidOptimistic(t *testing.T) {
 	init_code_keys()
 
-	token, err := SignCodeToken()
+	userInfo := &UserInfo{
+		Sid:       "sid",
+		Sub:       "sub",
+		UserName:  "Eugene Petrenko",
+		UserEmail: "me@jonnyzzz.com",
+	}
+
+	token, err := CodeKeys.SignInnerToken(userInfo)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	ok, err := ValidateCodeToken(token)
+	parsedUser, err := CodeKeys.ValidateInnerToken(token)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if !ok {
+	if parsedUser == nil {
 		t.Error("Code token validation failed")
+		return
+	}
+
+	if parsedUser.String() != userInfo.String() {
+		t.Error("Incorrectly restored user info: ", parsedUser.String(), " != ", userInfo.String(), "")
+	}
+
+	if *parsedUser != *userInfo {
+		t.Error("Incorrectly restored user info.")
 	}
 }
 
@@ -28,8 +44,8 @@ func TestRandomCode(t *testing.T) {
 
 	token := "this is broken key"
 
-	ok, err := ValidateCodeToken(token)
-	if err == nil || ok {
+	ok, err := CodeKeys.ValidateInnerToken(token)
+	if err == nil || ok != nil {
 		t.Error(err)
 	}
 }

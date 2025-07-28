@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	gojwt "github.com/golang-jwt/jwt/v5"
 	"log"
 	"net/http"
@@ -38,19 +37,13 @@ func token(w http.ResponseWriter, r *http.Request) {
 	if grantType == "refresh_token" {
 		refreshTokenString := r.Form.Get("refresh_token")
 
-		ok, err := ValidateRefreshToken(refreshTokenString)
+		ok, err := RefreshKeys.ValidateInnerToken(refreshTokenString)
 		if err != nil {
 			badRequest(w, r, "Failed to validate refresh token "+err.Error())
 			return
 		}
 
-		if !ok {
-			badRequest(w, r, "Invalid refresh token")
-			return
-		}
-
-		//TODO: figure our the token params: username, name, email
-		renderTokenResponse(w, r, "toolbox.admin")
+		renderTokenResponse(w, r, ok)
 		return
 	}
 
@@ -61,21 +54,14 @@ func token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ok, err := ValidateCodeToken(code)
+		ok, err := CodeKeys.ValidateInnerToken(code)
 		if err != nil {
 			badRequest(w, r, "Failed to validate code token "+err.Error())
 			return
 		}
 
-		if !ok {
-			badRequest(w, r, "Invalid code token")
-			return
-		}
-
 		//TODO: remember visited code to reject it next time
-
-		//TODO: figure our the token params: username, name, email
-		renderTokenResponse(w, r, "toolbox.admin")
+		renderTokenResponse(w, r, ok)
 		return
 	}
 
@@ -97,26 +83,31 @@ type TokenResponse struct {
 	TokenType    string `json:"token_type"`
 }
 
-func renderTokenResponse(w http.ResponseWriter, r *http.Request, username string) {
-	tokenString, err := TokenKeys.RenderJwtToken(gojwt.MapClaims{
-		"sid":   username,
-		"sub":   username,
-		"name":  username,
-		"email": fmt.Sprint(username, "@example.com"),
-	})
+func renderTokenResponse(w http.ResponseWriter, r *http.Request, userInfo *UserInfo) {
+	claims := gojwt.MapClaims{
+		"sid":  userInfo.Sid,
+		"sub":  userInfo.Sub,
+		"name": userInfo.UserName,
+	}
+
+	if len(userInfo.UserEmail) > 0 {
+		claims["email"] = userInfo.UserEmail
+	}
+
+	tokenString, err := TokenKeys.RenderJwtToken(claims)
 
 	if err != nil {
-		badRequest(w, r, "Failed to sign new token for username="+username+" "+err.Error())
+		badRequest(w, r, "Failed to sign new token for username="+userInfo.String()+" "+err.Error())
 		return
 	}
 
-	refreshTokenString, err := SignRefreshToken()
+	refreshTokenString, err := RefreshKeys.SignInnerToken(userInfo)
 	if err != nil {
-		badRequest(w, r, "Failed to sign new refresh token for username="+username+" "+err.Error())
+		badRequest(w, r, "Failed to sign new refresh token for username="+userInfo.String()+" "+err.Error())
 		return
 	}
 
-	log.Println("Generated refresh token for user =", username, "\n", refreshTokenString)
+	log.Println("Generated refresh token for user =", userInfo, "\n", refreshTokenString)
 	response := TokenResponse{
 		TokenType:    "Bearer",
 		ExpiresIn:    TokenKeys.ExpirationSeconds() - 3, // remove 3 seconds to lower collision probability
@@ -131,5 +122,5 @@ func renderTokenResponse(w http.ResponseWriter, r *http.Request, username string
 		return
 	}
 	_, err = w.Write(responseData)
-	log.Println("Generated token for user =", username, "\n", string(responseData))
+	log.Println("Generated token for user =", userInfo, "\n", string(responseData))
 }

@@ -47,8 +47,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO: include additional information from the request, to re-validate again
-	codeToken, err := SignCodeToken()
+	userInfo := ResolveUserInfoFromRequest(r)
+	if userInfo == nil {
+		badRequest(w, r, "Failed to resolve user info and IP from request")
+		return
+	}
+
+	codeToken, err := CodeKeys.SignInnerToken(userInfo)
 	if err != nil {
 		badRequest(w, r, "Failed to sign code token. "+err.Error())
 		return

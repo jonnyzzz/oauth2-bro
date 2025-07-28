@@ -13,12 +13,12 @@ import (
 )
 
 // NewKeys creates a new broKeysImpl with the specified environment variable names and initializes it
-func NewKeys(envKeyPemFile, envKeyId, envExpirationSeconds string, defaultExpirationSeconds int, defaultKeyBits int) (BroKeys, error) {
+func NewKeys(envKeyPemFile, envKeyId, envExpirationSeconds string, defaultExpirationSeconds int, defaultKeyBits int) BroKeys {
 	tk := &broKeysImpl{}
 	initExpirationSeconds(envExpirationSeconds, tk, defaultExpirationSeconds)
 	initPrivateKey(envKeyPemFile, tk, defaultKeyBits)
 	initKeyId(envKeyId, tk)
-	return tk, nil
+	return tk
 }
 
 func initKeyId(envKeyId string, tk *broKeysImpl) {
