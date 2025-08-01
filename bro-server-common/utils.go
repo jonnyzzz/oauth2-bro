@@ -5,10 +5,8 @@ import (
 	"net/http"
 )
 
-type Handler http.HandlerFunc
-
-func WrapResponseFactory(version string) func(handler Handler) Handler {
-	return func(handler Handler) Handler {
+func WrapResponseFactory(version string) func(handler http.HandlerFunc) http.HandlerFunc {
+	return func(handler http.HandlerFunc) http.HandlerFunc {
 		return func(writer http.ResponseWriter, request *http.Request) {
 			log.Println("request", request.URL.Path)
 			writer.Header().Set("Expires", "11 Aug 1984 14:21:33 GMT")
@@ -18,7 +16,6 @@ func WrapResponseFactory(version string) func(handler Handler) Handler {
 	}
 }
 
-// BadRequest sends a bad request response
 func BadRequest(w http.ResponseWriter, _ *http.Request, message string) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusBadRequest)

@@ -56,7 +56,7 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/", wrapResponse(s.home))
 	mux.HandleFunc("/favicon.ico", wrapResponse(bsc.FaviconHandler))
 	mux.HandleFunc("/health", wrapResponse(bsc.HealthHandler))
-	mux.HandleFunc("/jwks", wrapResponse(s.jwks))
+	mux.HandleFunc("/jwks", wrapResponse(bsc.JwksHandler(s.tokenKeys)))
 	mux.HandleFunc("/login", wrapResponse(s.login))
 	mux.HandleFunc("/token", wrapResponse(s.token))
 }
