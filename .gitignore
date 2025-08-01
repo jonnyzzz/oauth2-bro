@@ -27,8 +27,6 @@ go.work.sum
 # env file
 .env
 
-# OAuth2-bro binary
-oauth2-bro
 
 # Editor/IDE
 .idea/
