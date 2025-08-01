@@ -85,6 +85,20 @@ For production deployments, especially multi-node setups, provide your own RSA k
 |----------|-------------|
 | `OAUTH2_BRO_MAKE_ROOT_SECRET` | Secret for admin override functionality |
 
+### Proxy Mode Configuration
+
+| Variable | Description |
+|----------|-------------|
+| `OAUTH2_BRO_PROXY_TARGET` | Target URL to enable proxy mode (e.g., "http://your-service:8080") |
+
+When `OAUTH2_BRO_PROXY_TARGET` is set, OAuth2-bro runs in proxy mode, acting as a sidecar container that:
+- Forwards all incoming requests to the specified target service
+- Removes any existing Authorization header
+- Adds a freshly generated JWT access token based on the client's IP address
+- Exposes a JWKS endpoint at `/oauth2-bro/jwks` for token validation
+
+This allows services to receive authenticated requests without implementing OAuth2 themselves.
+
 ## 🔑 Key Generation
 
 For production deployments, generate RSA keys manually:

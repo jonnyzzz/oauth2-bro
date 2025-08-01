@@ -55,6 +55,7 @@ HTTP Server
 
 `OAUTH2_BRO_MAKE_ROOT_SECRET` -- required for Make me Root functionality, the secret used to validate the cookieSecret parameter
 
+`OAUTH2_BRO_PROXY_TARGET` -- enables proxy mode to send generated token for all requests to the given host
 
 Auth Scenarios
 -----
@@ -297,3 +298,6 @@ The logic is the following:
 - it removes the Authorization header when proxy and replaces it with a freshly generated access JWT token from generated keys. 
 - It should use user module to resolve the user and it should process the make me root token if it's set and not remove the cookie
 - Reuse the code as much as you can, start server from the bro-server code, do not create unneeded entities or keys
+
+
+We use `OAUTH2_BRO_PROXY_TARGET` to enable proxy mode
