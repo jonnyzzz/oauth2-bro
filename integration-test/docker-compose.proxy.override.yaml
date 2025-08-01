@@ -15,8 +15,6 @@ services:
       - OAUTH2_BRO_PROXY_TARGET=http://tbe-server:8443
     ports:
       - 8443:8077
-    depends_on:
-      - tbe-server
 
   tbe-server:
     ports: !reset null
@@ -25,3 +23,5 @@ services:
     environment:
       ## we have to copy the original value and patch to include the second config file
       - JAVA_TOOL_OPTIONS=-Dspring.config.additional-location=file:/tmp/application-demo.yml,file:/tmp-bro/ide-services-patch.proxy.yaml -Dtbe.deployment.import-machine-config-path=/tmp/your-company-machine-config.json
+    depends_on:
+      - mock-proxy

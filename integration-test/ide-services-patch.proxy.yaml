@@ -1,0 +1,8 @@
+tbe:
+  auth:
+    jwt-certs-url: 'http://mock-proxy:8077/oauth2-bro/jwks'
+    root-admin-emails:
+      - 'toolbox.admin@example.com'
+    root-admin-subjects:
+      - '123'
+
