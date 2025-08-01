@@ -16,7 +16,7 @@ type ServerConfig struct {
 	TokenKeys    keymanager.BroAccessKeys
 	UserResolver user.UserResolver
 	Version      string
-	Target       string
+	TargetUrl    string
 }
 
 // server holds all the server state and handlers
@@ -33,7 +33,7 @@ func newServer(config ServerConfig) *server {
 		tokenKeys:    config.TokenKeys,
 		userResolver: config.UserResolver,
 		version:      config.Version,
-		targetUrl:    config.Target,
+		targetUrl:    config.TargetUrl,
 	}
 }
 
@@ -49,7 +49,7 @@ func (s *server) setupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oauth2-bro/health", wrapResponse(bsc.HealthHandler))
 	mux.HandleFunc("/oauth2-bro/jwks", wrapResponse(bsc.JwksHandler(s.tokenKeys.ToBroKeys())))
 
-	// Target server URL
+	// TargetUrl server URL
 	target, err := url.Parse(s.targetUrl)
 	if err != nil {
 		log.Panicf("Failed to parse the proxy targetUrl url. %v", err)

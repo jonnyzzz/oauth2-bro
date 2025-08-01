@@ -87,7 +87,7 @@ func main() {
 			TokenKeys:    keymanager.NewTokenKeys(),
 			UserResolver: userManager,
 			Version:      version,
-			Target:       proxyTarget,
+			TargetUrl:    proxyTarget,
 		}, mux)
 	} else {
 		keyManager := keymanager.NewKeyManager()
