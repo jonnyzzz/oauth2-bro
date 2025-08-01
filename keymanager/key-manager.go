@@ -2,7 +2,7 @@ package keymanager
 
 // KeyManager holds all key instances
 type KeyManager struct {
-	TokenKeys   BroKeys
+	TokenKeys   BroAccessKeys
 	CodeKeys    BroInnerKeys
 	RefreshKeys BroInnerKeys
 }
@@ -10,13 +10,7 @@ type KeyManager struct {
 // NewKeyManager creates a new KeyManager instance with all key dependencies
 func NewKeyManager() *KeyManager {
 	// Create token keys
-	tokenKeys := NewKeys(
-		"OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE",
-		"OAUTH2_BRO_TOKEN_RSA_KEY_ID",
-		"OAUTH2_BRO_TOKEN_EXPIRATION_SECONDS",
-		300,
-		2048,
-	)
+	tokenKeys := NewTokenKeys()
 
 	// Create code keys
 	codeKeys := NewKeys(
@@ -41,4 +35,15 @@ func NewKeyManager() *KeyManager {
 		CodeKeys:    NewInnerKeys(codeKeys, "v1"),
 		RefreshKeys: NewInnerKeys(refreshKeys, "r1"),
 	}
+}
+
+func NewTokenKeys() BroAccessKeys {
+	tokenKeys := NewKeys(
+		"OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE",
+		"OAUTH2_BRO_TOKEN_RSA_KEY_ID",
+		"OAUTH2_BRO_TOKEN_EXPIRATION_SECONDS",
+		300,
+		2048,
+	)
+	return NewTokenKeysFrom(tokenKeys)
 }

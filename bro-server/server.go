@@ -13,7 +13,7 @@ import (
 type ServerConfig struct {
 	RefreshKeys        keymanager.BroInnerKeys
 	CodeKeys           keymanager.BroInnerKeys
-	TokenKeys          keymanager.BroKeys
+	TokenKeys          keymanager.BroAccessKeys
 	UserResolver       user.UserResolver
 	ClientInfoProvider client.ClientInfoProvider
 	Version            string
@@ -23,7 +23,7 @@ type ServerConfig struct {
 type server struct {
 	refreshKeys        keymanager.BroInnerKeys
 	codeKeys           keymanager.BroInnerKeys
-	tokenKeys          keymanager.BroKeys
+	tokenKeys          keymanager.BroAccessKeys
 	userResolver       user.UserResolver
 	clientInfoProvider client.ClientInfoProvider
 	version            string
@@ -56,7 +56,7 @@ func (s *server) setupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/", wrapResponse(s.home))
 	mux.HandleFunc("/favicon.ico", wrapResponse(bsc.FaviconHandler))
 	mux.HandleFunc("/health", wrapResponse(bsc.HealthHandler))
-	mux.HandleFunc("/jwks", wrapResponse(bsc.JwksHandler(s.tokenKeys)))
+	mux.HandleFunc("/jwks", wrapResponse(bsc.JwksHandler(s.tokenKeys.ToBroKeys())))
 	mux.HandleFunc("/login", wrapResponse(s.login))
 	mux.HandleFunc("/token", wrapResponse(s.token))
 }

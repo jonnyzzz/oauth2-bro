@@ -7,7 +7,6 @@ import (
 	"jonnyzzz.com/oauth2-bro/user"
 )
 
-// UserInfoProvider interface for getting user information
 type UserInfoProvider interface {
 	ToInnerJwtClaims() map[string]string
 }

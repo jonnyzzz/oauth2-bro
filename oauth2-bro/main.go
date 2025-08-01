@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	browproxy "jonnyzzz.com/oauth2-bro/bro-proxy"
 	browserver "jonnyzzz.com/oauth2-bro/bro-server"
 	"jonnyzzz.com/oauth2-bro/client"
 	"jonnyzzz.com/oauth2-bro/user"
@@ -74,20 +75,31 @@ func main() {
 	fmt.Println("")
 	printOAuth2BroBanner()
 
-	keyManager := keymanager.NewKeyManager()
 	userManager := user.NewUserResolver()
 	clientManager := client.NewClientManager()
 
 	mux := http.NewServeMux()
 
-	browserver.SetupServer(browserver.ServerConfig{
-		RefreshKeys:        keyManager.RefreshKeys,
-		CodeKeys:           keyManager.CodeKeys,
-		TokenKeys:          keyManager.TokenKeys,
-		UserResolver:       userManager,
-		ClientInfoProvider: clientManager,
-		Version:            version,
-	}, mux)
+	proxyTarget := os.Getenv("OAUTH2_BRO_PROXY_TARGET")
+	if len(proxyTarget) > 0 {
+		fmt.Println("Running reverse-proxy with proxy target: ", proxyTarget)
+		browproxy.SetupServer(browproxy.ServerConfig{
+			TokenKeys:    keymanager.NewTokenKeys(),
+			UserResolver: userManager,
+			Version:      version,
+			Target:       proxyTarget,
+		}, mux)
+	} else {
+		keyManager := keymanager.NewKeyManager()
+		browserver.SetupServer(browserver.ServerConfig{
+			RefreshKeys:        keyManager.RefreshKeys,
+			CodeKeys:           keyManager.CodeKeys,
+			TokenKeys:          keyManager.TokenKeys,
+			UserResolver:       userManager,
+			ClientInfoProvider: clientManager,
+			Version:            version,
+		}, mux)
+	}
 
 	addr := resolveBindAddress()
 	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_FILE")

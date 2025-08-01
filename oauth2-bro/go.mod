@@ -4,6 +4,7 @@ go 1.24.5
 
 require (
 	jonnyzzz.com/oauth2-bro/bro-server v0.0.0
+	jonnyzzz.com/oauth2-bro/bro-proxy v0.0.0
 	jonnyzzz.com/oauth2-bro/client v0.0.0
 	jonnyzzz.com/oauth2-bro/keymanager v0.0.0
 	jonnyzzz.com/oauth2-bro/user v0.0.0
@@ -15,6 +16,7 @@ require (
 )
 
 replace (
+	jonnyzzz.com/oauth2-bro/bro-proxy => ../bro-proxy
 	jonnyzzz.com/oauth2-bro/bro-server => ../bro-server
 	jonnyzzz.com/oauth2-bro/bro-server-common => ../bro-server-common
 	jonnyzzz.com/oauth2-bro/client => ../client
