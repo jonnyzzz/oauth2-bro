@@ -266,3 +266,15 @@ cookie will be removed.
 It might be better to supply a signed URL similar to AWS's approach, where cookieSecret
 is never the original secret, but a temporary token. TBD.
 
+
+Proxy Mode
+---------
+
+It is possible to run OAuth2-bro in proxy mode, in that case, 
+we implement the same login of user management, but implicitly
+with the following flow
+
+```
+client ---[request without Authorization]--> OAuth2-bro proxy --[added Authorization]--> target service
+```
+
