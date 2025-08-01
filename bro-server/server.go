@@ -14,9 +14,8 @@ type ServerConfig struct {
 	RefreshKeys        keymanager.BroInnerKeys
 	CodeKeys           keymanager.BroInnerKeys
 	TokenKeys          keymanager.BroKeys
-	UserManager        *user.UserManager
+	UserResolver       user.UserResolver
 	ClientInfoProvider client.ClientInfoProvider
-	UserInfoProvider   user.UserInfoProvider
 	Version            string
 }
 
@@ -25,9 +24,8 @@ type Server struct {
 	refreshKeys        keymanager.BroInnerKeys
 	codeKeys           keymanager.BroInnerKeys
 	tokenKeys          keymanager.BroKeys
-	userManager        *user.UserManager
+	userResolver       user.UserResolver
 	clientInfoProvider client.ClientInfoProvider
-	userInfoProvider   user.UserInfoProvider
 	version            string
 }
 
@@ -41,19 +39,15 @@ func NewServer(config ServerConfig) *Server {
 		refreshKeys:        config.RefreshKeys,
 		codeKeys:           config.CodeKeys,
 		tokenKeys:          config.TokenKeys,
-		userManager:        config.UserManager,
+		userResolver:       config.UserResolver,
 		clientInfoProvider: config.ClientInfoProvider,
-		userInfoProvider:   config.UserInfoProvider,
 		version:            config.Version,
 	}
 }
 
 // SetupServer initializes the HTTP server with the provided configuration
 func SetupServer(config ServerConfig) {
-	// Create server instance
 	server := NewServer(config)
-
-	// Setup HTTP routes
 	server.setupRoutes()
 }
 

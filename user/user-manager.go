@@ -9,39 +9,34 @@ import (
 	"strings"
 )
 
-// UserManager holds all user-related state and provides methods for user operations
-type UserManager struct {
+// userResolverImpl holds all user-related state and provides methods for user operations
+type userResolverImpl struct {
 	ipMaskCache []*net.IPNet
 	emailDomain string
 }
 
-// Ensure UserManager implements UserInfoProvider interface
-var _ UserInfoProvider = (*UserManager)(nil)
+// Ensure userResolverImpl implements UserResolver interface
+var _ UserResolver = (*userResolverImpl)(nil)
 
-// NewUserManager creates a new UserManager instance with all dependencies
-func NewUserManager() *UserManager {
-	um := &UserManager{
-		ipMaskCache: nil,
+// NewUserResolver creates a new UserResolver instance with all dependencies
+func NewUserResolver() UserResolver {
+	um := &userResolverImpl{
+		ipMaskCache: initIpMasks(),
 		emailDomain: os.Getenv("OAUTH2_BRO_EMAIL_DOMAIN"),
 	}
-
-	// Initialize IP masks
-	um.initIpMasks()
 
 	return um
 }
 
-// Client functionality moved to client module
-
 // initIpMasks initializes the IP masks from the environment variable
-func (um *UserManager) initIpMasks() {
+func initIpMasks() []*net.IPNet {
 	masksStr := os.Getenv("OAUTH2_BRO_ALLOWED_IP_MASKS")
-	if masksStr == "" {
-		return // No masks specified, all IPs are allowed
+	if strings.TrimSpace(masksStr) == "" {
+		return nil // No masks specified, all IPs are allowed
 	}
 
-	masksList := strings.Split(masksStr, ",")
-	for _, maskStr := range masksList {
+	var ipMaskCache []*net.IPNet
+	for _, maskStr := range strings.Split(masksStr, ",") {
 		maskStr = strings.TrimSpace(maskStr)
 		if maskStr == "" {
 			continue
@@ -53,14 +48,13 @@ func (um *UserManager) initIpMasks() {
 			continue
 		}
 
-		um.ipMaskCache = append(um.ipMaskCache, ipNet)
+		ipMaskCache = append(ipMaskCache, ipNet)
 	}
+
+	return ipMaskCache
 }
 
-// Client functionality moved to client module
-
-// isIPAllowed checks if the given IP is allowed based on the configured IP masks
-func (um *UserManager) isIPAllowed(ipStr string) bool {
+func (um *userResolverImpl) isIPAllowed(ipStr string) bool {
 	if len(um.ipMaskCache) == 0 {
 		return true // No masks specified, all IPs are allowed
 	}
@@ -80,7 +74,7 @@ func (um *UserManager) isIPAllowed(ipStr string) bool {
 }
 
 // GetEmailDomain returns the configured email domain
-func (um *UserManager) GetEmailDomain() string {
+func (um *userResolverImpl) GetEmailDomain() string {
 	return um.emailDomain
 }
 
@@ -89,7 +83,7 @@ func (um *UserManager) GetEmailDomain() string {
 // It respects X-Forwarded-For and similar HTTP headers to resolve the requestor IP.
 // If IP address masks are configured via OAUTH2_BRO_ALLOWED_IP_MASKS environment variable,
 // only IPs matching those masks will be processed. Returns nil for IPs that don't match.
-func (um *UserManager) ResolveUserInfoFromRequest(r *http.Request) *UserInfo {
+func (um *userResolverImpl) ResolveUserInfoFromRequest(r *http.Request) *UserInfo {
 	// Extract IP address from request
 	ip := extractIP(r)
 
@@ -102,7 +96,6 @@ func (um *UserManager) ResolveUserInfoFromRequest(r *http.Request) *UserInfo {
 		return nil // IP is not in the allowed ranges
 	}
 
-	// Create username from IP
 	username := createUsernameFromIP(normalizedIP)
 
 	// Create hash from IP for Sid and Sub
@@ -167,8 +160,6 @@ func extractIP(r *http.Request) string {
 		return strings.TrimSpace(trueClientIP)
 	}
 
-	// Fallback to RemoteAddr
-	// RemoteAddr is in the format "IP:port"
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		// If SplitHostPort fails, use RemoteAddr as is

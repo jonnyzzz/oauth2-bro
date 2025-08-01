@@ -7,21 +7,21 @@ import (
 )
 
 func TestUserInfoProviderInterface(t *testing.T) {
-	// Test with UserManager implementation
-	t.Run("UserManager Implementation", func(t *testing.T) {
-		// Set up environment for UserManager test
+	// Test with userResolverImpl implementation
+	t.Run("userResolverImpl Implementation", func(t *testing.T) {
+		// Set up environment for userResolverImpl test
 		originalIPMasks := os.Getenv("OAUTH2_BRO_ALLOWED_IP_MASKS")
 		defer os.Setenv("OAUTH2_BRO_ALLOWED_IP_MASKS", originalIPMasks)
 
 		// Allow all IPs for testing
 		os.Setenv("OAUTH2_BRO_ALLOWED_IP_MASKS", "")
 
-		userManager := NewUserManager()
+		userManager := NewUserResolver()
 		testUserInfoProvider(t, userManager)
 	})
 }
 
-func testUserInfoProvider(t *testing.T, provider UserInfoProvider) {
+func testUserInfoProvider(t *testing.T, provider UserResolver) {
 	// Create a simple HTTP request for testing
 	req, err := http.NewRequest("GET", "/test", nil)
 	if err != nil {

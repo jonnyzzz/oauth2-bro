@@ -2,8 +2,8 @@ package user
 
 import "net/http"
 
-// UserInfoProvider defines the interface for user information functionality
-type UserInfoProvider interface {
+// UserResolver defines the interface for user information functionality
+type UserResolver interface {
 	// ResolveUserInfoFromRequest extracts client IP from HTTP request headers,
 	// normalizes it, and creates a human-readable username from it.
 	// It respects X-Forwarded-For and similar HTTP headers to resolve the requestor IP.

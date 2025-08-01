@@ -25,41 +25,6 @@ func printHelp() {
 	fmt.Println("  -h, --help     Show this help message")
 	fmt.Println("  -v, --version  Show version information")
 	fmt.Println("")
-	fmt.Println("Environment Variables:")
-	fmt.Println("  OAUTH2_BRO_BIND_HOST              Host to bind to (default: localhost)")
-	fmt.Println("  OAUTH2_BRO_BIND_PORT              Port to bind to (default: 8077)")
-	fmt.Println("  OAUTH2_BRO_HTTPS_CERT_FILE        Path to SSL certificate file for HTTPS")
-	fmt.Println("  OAUTH2_BRO_HTTPS_CERT_KEY_FILE    Path to SSL private key file for HTTPS")
-	fmt.Println("  OAUTH2_BRO_CLIENT_CREDENTIALS     Client credentials in format 'client_id=secret'")
-	fmt.Println("  OAUTH2_BRO_ALLOWED_IP_MASKS       Comma-separated list of allowed IP masks")
-	fmt.Println("  OAUTH2_BRO_EMAIL_DOMAIN           Email domain for user emails")
-	fmt.Println("  OAUTH2_BRO_MAKE_ROOT_SECRET       Secret for making root user")
-	fmt.Println("")
-	fmt.Println("Key Management:")
-	fmt.Println("  OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE     Path to token RSA private key")
-	fmt.Println("  OAUTH2_BRO_TOKEN_RSA_KEY_ID           Token key ID")
-	fmt.Println("  OAUTH2_BRO_TOKEN_EXPIRATION_SECONDS   Token expiration time (default: 300)")
-	fmt.Println("  OAUTH2_BRO_CODE_RSA_KEY_PEM_FILE      Path to code RSA private key")
-	fmt.Println("  OAUTH2_BRO_CODE_RSA_KEY_ID            Code key ID")
-	fmt.Println("  OAUTH2_BRO_CODE_EXPIRATION_SECONDS    Code expiration time (default: 5)")
-	fmt.Println("  OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE   Path to refresh RSA private key")
-	fmt.Println("  OAUTH2_BRO_REFRESH_RSA_KEY_ID         Refresh key ID")
-	fmt.Println("  OAUTH2_BRO_REFRESH_EXPIRATION_SECONDS Refresh expiration time (default: 864000)")
-	fmt.Println("")
-	fmt.Println("Examples:")
-	fmt.Println("  oauth2-bro                                    # Start with defaults")
-	fmt.Println("  oauth2-bro --help                             # Show help")
-	fmt.Println("  oauth2-bro --version                          # Show version")
-	fmt.Println("  OAUTH2_BRO_BIND_PORT=8080 oauth2-bro         # Start on port 8080")
-	fmt.Println("  OAUTH2_BRO_BIND_HOST=0.0.0.0 oauth2-bro      # Bind to all interfaces")
-	fmt.Println("")
-	fmt.Println("Endpoints:")
-	fmt.Println("  GET  /         - Home page with OAuth2 information")
-	fmt.Println("  GET  /health   - Health check endpoint")
-	fmt.Println("  GET  /jwks     - JSON Web Key Set")
-	fmt.Println("  GET  /login    - OAuth2 authorization endpoint")
-	fmt.Println("  POST /token    - OAuth2 token endpoint")
-	fmt.Println("  GET  /favicon.ico - Favicon")
 }
 
 func printVersion() {
@@ -109,13 +74,8 @@ func main() {
 	fmt.Println("")
 	printOAuth2BroBanner()
 
-	// Create key manager with all dependencies
 	keyManager := keymanager.NewKeyManager()
-
-	// Create user manager with all dependencies
-	userManager := user.NewUserManager()
-
-	// Create client manager with all dependencies
+	userManager := user.NewUserResolver()
 	clientManager := client.NewClientManager()
 
 	// Setup the HTTP server with key configuration
@@ -123,9 +83,8 @@ func main() {
 		RefreshKeys:        keyManager.RefreshKeys,
 		CodeKeys:           keyManager.CodeKeys,
 		TokenKeys:          keyManager.TokenKeys,
-		UserManager:        userManager,
+		UserResolver:       userManager,
 		ClientInfoProvider: clientManager, // ClientManager implements ClientInfoProvider
-		UserInfoProvider:   userManager,   // UserManager implements UserInfoProvider
 		Version:            version,
 	})
 

@@ -33,7 +33,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 	keyManager := keymanager.NewKeyManager()
 
 	// Create user manager for testing
-	userManager := user.NewUserManager()
+	userResolver := user.NewUserResolver()
 
 	// Create client manager for testing
 	clientManager := client.NewClientManager()
@@ -43,9 +43,8 @@ func TestOAuth2CodeFlow(t *testing.T) {
 		RefreshKeys:        keyManager.RefreshKeys,
 		CodeKeys:           keyManager.CodeKeys,
 		TokenKeys:          keyManager.TokenKeys,
-		UserManager:        userManager,
+		UserResolver:       userResolver,
 		ClientInfoProvider: clientManager,
-		UserInfoProvider:   userManager,
 		Version:            "test",
 	}
 
@@ -345,7 +344,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 	keyManager := keymanager.NewKeyManager()
 
 	// Create user manager for testing
-	userManager := user.NewUserManager()
+	userManager := user.NewUserResolver()
 
 	// Create client manager for testing
 	clientManager := client.NewClientManager()
@@ -355,9 +354,8 @@ func TestMakeRootFunctionality(t *testing.T) {
 		RefreshKeys:        keyManager.RefreshKeys,
 		CodeKeys:           keyManager.CodeKeys,
 		TokenKeys:          keyManager.TokenKeys,
-		UserManager:        userManager,
+		UserResolver:       userManager,
 		ClientInfoProvider: clientManager,
-		UserInfoProvider:   userManager,
 		Version:            "test",
 	}
 
@@ -667,7 +665,7 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 	keyManager := keymanager.NewKeyManager()
 
 	// Create user manager for testing
-	userManager := user.NewUserManager()
+	userManager := user.NewUserResolver()
 
 	// Create client manager for testing
 	clientManager := client.NewClientManager()
@@ -677,9 +675,8 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 		RefreshKeys:        keyManager.RefreshKeys,
 		CodeKeys:           keyManager.CodeKeys,
 		TokenKeys:          keyManager.TokenKeys,
-		UserManager:        userManager,
+		UserResolver:       userManager,
 		ClientInfoProvider: clientManager,
-		UserInfoProvider:   userManager,
 		Version:            "test",
 	}
 

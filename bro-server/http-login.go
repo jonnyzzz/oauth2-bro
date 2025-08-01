@@ -190,7 +190,7 @@ func (s *Server) handleNormalLogin(w http.ResponseWriter, r *http.Request, query
 	// Use custom user info if provided, otherwise resolve from request
 	userInfo := customUserInfo
 	if userInfo == nil {
-		userInfo = s.userInfoProvider.ResolveUserInfoFromRequest(r)
+		userInfo = s.userResolver.ResolveUserInfoFromRequest(r)
 		if userInfo == nil {
 			badRequest(w, r, "Failed to resolve user info and IP from request")
 			return
