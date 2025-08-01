@@ -1,9 +1,12 @@
 package keymanager
 
 import (
+	"encoding/json"
 	"fmt"
-	gojwt "github.com/golang-jwt/jwt/v5"
 	"time"
+
+	gojwt "github.com/golang-jwt/jwt/v5"
+	"github.com/rakutentech/jwk-go/jwk"
 )
 
 // SigningMethod returns the JWT signing method
@@ -48,4 +51,36 @@ func (tk *broKeysImpl) ValidateJwtToken(tokenString string, claims gojwt.Claims)
 
 	//TODO: check expiration and other predicates
 	return token, nil
+}
+
+// Jwks generates a JWKS (JSON Web Key Set) from the BroKeys instance
+func (tk *broKeysImpl) Jwks() ([]byte, error) {
+	spec, err := (&jwk.KeySpec{
+		Key:       tk.PrivateKey(),
+		KeyID:     tk.KeyId(),
+		Use:       "sig",
+		Algorithm: tk.SigningMethod().Alg(),
+	}).PublicOnly()
+
+	if err != nil {
+		return nil, err
+	}
+
+	j, err := spec.ToJWK()
+	if err != nil {
+		return nil, err
+	}
+
+	keys := struct {
+		Keys []*jwk.JWK `json:"keys"`
+	}{
+		Keys: []*jwk.JWK{j},
+	}
+
+	data, err := json.MarshalIndent(keys, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }

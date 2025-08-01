@@ -2,6 +2,7 @@ package keymanager
 
 import (
 	"crypto/rsa"
+
 	gojwt "github.com/golang-jwt/jwt/v5"
 )
 
@@ -14,6 +15,7 @@ type BroKeys interface {
 
 	RenderJwtToken(claims gojwt.MapClaims) (string, error)
 	ValidateJwtToken(tokenString string, claims gojwt.Claims) (*gojwt.Token, error)
+	Jwks() ([]byte, error)
 }
 
 type broKeysImpl struct {
