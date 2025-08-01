@@ -1,4 +1,4 @@
-package main
+package broserver
 
 import (
 	_ "embed"
@@ -9,13 +9,13 @@ import (
 //go:embed oauth2-bro-favicon.ico
 var faviconContent []byte
 
-func home(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) home(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	_, _ = w.Write([]byte(
-		fmt.Sprint("OAuth2-bro\n\nversion: ", version, "\n\n", bannerText())))
+		fmt.Sprint("OAuth2-bro", "\n\nversion: ", s.version, "\n\n", "OAuth2-bro")))
 }
 
-func favicon(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) favicon(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "image/x-icon")
 	w.WriteHeader(200)
 	_, _ = w.Write(faviconContent)

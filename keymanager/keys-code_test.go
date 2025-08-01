@@ -1,4 +1,4 @@
-package main
+package keymanager
 
 import (
 	"testing"
@@ -7,6 +7,7 @@ import (
 )
 
 func TestCodeIsValidOptimistic(t *testing.T) {
+	// Create a new keymanager instance for this test
 	keyManager := NewKeyManager()
 
 	userInfo := &user.UserInfo{
@@ -50,6 +51,7 @@ func TestCodeIsValidOptimistic(t *testing.T) {
 }
 
 func TestRandomCode(t *testing.T) {
+	// Create a new keymanager instance for this test
 	keyManager := NewKeyManager()
 
 	token := "this is broken key"

@@ -1,20 +1,20 @@
-package main
+package broserver
 
 import (
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-)
 
-const rootCookieName = "oauth2-bro-make-me-root"
+	"jonnyzzz.com/oauth2-bro/user"
+)
 
 // getMakeRootSecret returns the secret used to validate the cookieSecret parameter
 func getMakeRootSecret() string {
 	return os.Getenv("OAUTH2_BRO_MAKE_ROOT_SECRET")
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
+func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
@@ -24,7 +24,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	// Only proceed with Make me Root if cookieSecret is provided and matches the expected value
 	if len(cookieSecret) > 0 && len(expectedSecret) > 0 && cookieSecret == expectedSecret {
-		handleMakeRoot(w, r, queryParams)
+		s.handleMakeRoot(w, r, queryParams)
 		return
 	}
 
@@ -44,20 +44,27 @@ func login(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, expiredCookie)
 
 		// Cookie exists, use it to create a custom user info
-		userInfo, err := RefreshKeys.ValidateInnerToken(cookie.Value)
-		if err == nil && userInfo != nil {
+		keymanagerUserInfo, err := s.refreshKeys.ValidateInnerToken(cookie.Value)
+		if err == nil && keymanagerUserInfo != nil {
+			// Convert keymanager UserInfo to user module UserInfo
+			userInfo := &user.UserInfo{
+				Sid:       keymanagerUserInfo.Sid,
+				Sub:       keymanagerUserInfo.Sub,
+				UserName:  keymanagerUserInfo.UserName,
+				UserEmail: keymanagerUserInfo.UserEmail,
+			}
 			// Successfully validated the cookie, proceed with login
-			handleNormalLogin(w, r, queryParams, userInfo)
+			s.handleNormalLogin(w, r, queryParams, userInfo)
 			return
 		}
 	}
 
 	// Normal login flow
-	handleNormalLogin(w, r, queryParams, nil)
+	s.handleNormalLogin(w, r, queryParams, nil)
 }
 
 // parseUserInfoFromQueryParams extracts user information from query parameters
-func parseUserInfoFromQueryParams(queryParams url.Values) *UserInfo {
+func (s *Server) parseUserInfoFromQueryParams(queryParams url.Values) *user.UserInfo {
 	// Create a UserInfo object from the query parameters
 	sid := queryParams.Get("sid")
 	sub := queryParams.Get("sub")
@@ -98,7 +105,7 @@ func parseUserInfoFromQueryParams(queryParams url.Values) *UserInfo {
 	}
 
 	// Create the UserInfo object
-	return &UserInfo{
+	return &user.UserInfo{
 		Sid:       sid,
 		Sub:       sub,
 		UserName:  name,
@@ -107,17 +114,17 @@ func parseUserInfoFromQueryParams(queryParams url.Values) *UserInfo {
 }
 
 // handleMakeRoot handles the "Make me Root" functionality
-func handleMakeRoot(w http.ResponseWriter, r *http.Request, queryParams url.Values) {
+func (s *Server) handleMakeRoot(w http.ResponseWriter, r *http.Request, queryParams url.Values) {
 
 	// Parse user info from query parameters
-	userInfo := parseUserInfoFromQueryParams(queryParams)
+	userInfo := s.parseUserInfoFromQueryParams(queryParams)
 	if userInfo == nil {
 		badRequest(w, r, "At least one of sid, sub, name, or email must be provided")
 		return
 	}
 
 	// Generate a refresh token
-	refreshToken, err := RefreshKeys.SignInnerToken(userInfo)
+	refreshToken, err := s.refreshKeys.SignInnerToken(userInfo)
 	if err != nil {
 		badRequest(w, r, "Failed to sign refresh token: "+err.Error())
 		return
@@ -128,7 +135,7 @@ func handleMakeRoot(w http.ResponseWriter, r *http.Request, queryParams url.Valu
 		Name:     rootCookieName,
 		Value:    refreshToken,
 		Path:     "/login",
-		MaxAge:   RefreshKeys.ToBroKeys().ExpirationSeconds(),
+		MaxAge:   s.refreshKeys.ToBroKeys().ExpirationSeconds(),
 		HttpOnly: true,
 		Secure:   r.TLS != nil,
 		SameSite: http.SameSiteLaxMode,
@@ -142,7 +149,7 @@ func handleMakeRoot(w http.ResponseWriter, r *http.Request, queryParams url.Valu
 }
 
 // handleNormalLogin handles the normal login flow
-func handleNormalLogin(w http.ResponseWriter, r *http.Request, queryParams url.Values, customUserInfo *UserInfo) {
+func (s *Server) handleNormalLogin(w http.ResponseWriter, r *http.Request, queryParams url.Values, customUserInfo *user.UserInfo) {
 	// Extract the parameters from your example
 	responseType := queryParams.Get("response_type") // "code"
 	if responseType != "code" {
@@ -155,7 +162,7 @@ func handleNormalLogin(w http.ResponseWriter, r *http.Request, queryParams url.V
 		badRequest(w, r, "client_id parameter is missing")
 		return
 	}
-	if !isClientIdAllowed(clientId) {
+	if !s.clientInfoProvider.IsClientIdAllowed(clientId) {
 		badRequest(w, r, "client_id '"+clientId+"' parameter is not allowed")
 		return
 	}
@@ -183,14 +190,14 @@ func handleNormalLogin(w http.ResponseWriter, r *http.Request, queryParams url.V
 	// Use custom user info if provided, otherwise resolve from request
 	userInfo := customUserInfo
 	if userInfo == nil {
-		userInfo = ResolveUserInfoFromRequest(r)
+		userInfo = s.userInfoProvider.ResolveUserInfoFromRequest(r)
 		if userInfo == nil {
 			badRequest(w, r, "Failed to resolve user info and IP from request")
 			return
 		}
 	}
 
-	codeToken, err := CodeKeys.SignInnerToken(userInfo)
+	codeToken, err := s.codeKeys.SignInnerToken(userInfo)
 	if err != nil {
 		badRequest(w, r, "Failed to sign code token. "+err.Error())
 		return

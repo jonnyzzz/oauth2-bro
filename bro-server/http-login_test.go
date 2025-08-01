@@ -1,10 +1,9 @@
-package main
+package broserver
 
 import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,18 +11,45 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/golang-jwt/jwt/v5"
+	"jonnyzzz.com/oauth2-bro/client"
+	"jonnyzzz.com/oauth2-bro/keymanager"
+	"jonnyzzz.com/oauth2-bro/user"
 )
 
 func TestOAuth2CodeFlow(t *testing.T) {
-	// Call all the init_* functions to initialize the system
-	init_token_keys()
-	init_jwks()
-	init_code_keys()
-	init_refresh_keys()
-	init_client_id()
+	// Set up environment for testing
+	os.Setenv("OAUTH2_BRO_CLIENT_CREDENTIALS", "tbe-server=bacd3019-c3b9-4b31-98d5-d3c410a1098e")
+	defer os.Unsetenv("OAUTH2_BRO_CLIENT_CREDENTIALS")
+
+	// Create key manager for testing
+	keyManager := keymanager.NewKeyManager()
+
+	// Create user manager for testing
+	userManager := user.NewUserManager()
+
+	// Create client manager for testing
+	clientManager := client.NewClientManager()
+
+	// Create server configuration
+	config := ServerConfig{
+		RefreshKeys:        keyManager.RefreshKeys,
+		CodeKeys:           keyManager.CodeKeys,
+		TokenKeys:          keyManager.TokenKeys,
+		UserManager:        userManager,
+		ClientInfoProvider: clientManager,
+		UserInfoProvider:   userManager,
+		Version:            "test",
+	}
+
+	// Create server instance and setup routes on a new mux
+	serverInstance := NewServer(config)
+	mux := http.NewServeMux()
+	serverInstance.setupRoutesOnMux(mux)
 
 	// Create a test server
-	server := httptest.NewServer(http.DefaultServeMux)
+	server := httptest.NewServer(mux)
 	defer server.Close()
 
 	// Test the login endpoint to get a code
@@ -131,7 +157,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 			}
 
 			// Parse JWKS data
-			var keys Keys
+			var keys keymanager.Keys
 			err = json.Unmarshal(jwksBody, &keys)
 			if err != nil {
 				t.Fatalf("Failed to parse JWKS data: %v", err)
@@ -305,19 +331,41 @@ func TestOAuth2CodeFlow(t *testing.T) {
 }
 
 func TestMakeRootFunctionality(t *testing.T) {
-	// Call all the init_* functions to initialize the system
-	init_token_keys()
-	init_jwks()
-	init_code_keys()
-	init_refresh_keys()
-	init_client_id()
+	// Set up environment for testing
+	os.Setenv("OAUTH2_BRO_CLIENT_CREDENTIALS", "tbe-server=bacd3019-c3b9-4b31-98d5-d3c410a1098e")
+	defer os.Unsetenv("OAUTH2_BRO_CLIENT_CREDENTIALS")
+
+	// Create key manager for testing
+	keyManager := keymanager.NewKeyManager()
+
+	// Create user manager for testing
+	userManager := user.NewUserManager()
+
+	// Create client manager for testing
+	clientManager := client.NewClientManager()
+
+	// Create server configuration
+	config := ServerConfig{
+		RefreshKeys:        keyManager.RefreshKeys,
+		CodeKeys:           keyManager.CodeKeys,
+		TokenKeys:          keyManager.TokenKeys,
+		UserManager:        userManager,
+		ClientInfoProvider: clientManager,
+		UserInfoProvider:   userManager,
+		Version:            "test",
+	}
+
+	// Create server instance and setup routes on a new mux
+	serverInstance := NewServer(config)
+	mux := http.NewServeMux()
+	serverInstance.setupRoutesOnMux(mux)
 
 	// Set up environment variables for the test
 	os.Setenv("OAUTH2_BRO_MAKE_ROOT_SECRET", "test-secret")
 	defer os.Unsetenv("OAUTH2_BRO_MAKE_ROOT_SECRET")
 
 	// Create a test server
-	server := httptest.NewServer(http.DefaultServeMux)
+	server := httptest.NewServer(mux)
 	defer server.Close()
 
 	// Test setting the Make me Root cookie
@@ -485,7 +533,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 				}
 
 				// Parse JWKS data
-				var keys Keys
+				var keys keymanager.Keys
 				err = json.Unmarshal(jwksBody, &keys)
 				if err != nil {
 					t.Fatalf("Failed to parse JWKS data: %v", err)
@@ -605,15 +653,37 @@ func TestMakeRootFunctionality(t *testing.T) {
 }
 
 func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
-	// Call all the init_* functions to initialize the system
-	init_token_keys()
-	init_jwks()
-	init_code_keys()
-	init_refresh_keys()
-	init_client_id()
+	// Set up environment for testing
+	os.Setenv("OAUTH2_BRO_CLIENT_CREDENTIALS", "tbe-server=bacd3019-c3b9-4b31-98d5-d3c410a1098e")
+	defer os.Unsetenv("OAUTH2_BRO_CLIENT_CREDENTIALS")
+
+	// Create key manager for testing
+	keyManager := keymanager.NewKeyManager()
+
+	// Create user manager for testing
+	userManager := user.NewUserManager()
+
+	// Create client manager for testing
+	clientManager := client.NewClientManager()
+
+	// Create server configuration
+	config := ServerConfig{
+		RefreshKeys:        keyManager.RefreshKeys,
+		CodeKeys:           keyManager.CodeKeys,
+		TokenKeys:          keyManager.TokenKeys,
+		UserManager:        userManager,
+		ClientInfoProvider: clientManager,
+		UserInfoProvider:   userManager,
+		Version:            "test",
+	}
+
+	// Create server instance and setup routes on a new mux
+	serverInstance := NewServer(config)
+	mux := http.NewServeMux()
+	serverInstance.setupRoutesOnMux(mux)
 
 	// Create a test server
-	server := httptest.NewServer(http.DefaultServeMux)
+	server := httptest.NewServer(mux)
 	defer server.Close()
 
 	// Test the login endpoint with invalid response_type

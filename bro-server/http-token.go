@@ -1,13 +1,15 @@
-package main
+package broserver
 
 import (
 	"encoding/json"
-	gojwt "github.com/golang-jwt/jwt/v5"
 	"log"
 	"net/http"
+
+	gojwt "github.com/golang-jwt/jwt/v5"
+	"jonnyzzz.com/oauth2-bro/user"
 )
 
-func token(w http.ResponseWriter, r *http.Request) {
+func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	if r.Method != "POST" {
 		badRequest(w, r, "Only POST method is supported")
@@ -27,7 +29,7 @@ func token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !isClientAllowed(clientId, clientSecret) {
+	if !s.clientInfoProvider.IsClientAllowed(clientId, clientSecret) {
 		badRequest(w, r, "client_id and client_secret parameters are not allowed")
 		return
 	}
@@ -37,13 +39,21 @@ func token(w http.ResponseWriter, r *http.Request) {
 	if grantType == "refresh_token" {
 		refreshTokenString := r.Form.Get("refresh_token")
 
-		ok, err := RefreshKeys.ValidateInnerToken(refreshTokenString)
+		keymanagerUserInfo, err := s.refreshKeys.ValidateInnerToken(refreshTokenString)
 		if err != nil {
 			badRequest(w, r, "Failed to validate refresh token "+err.Error())
 			return
 		}
 
-		renderTokenResponse(w, r, ok)
+		// Convert keymanager UserInfo to user module UserInfo
+		userInfo := &user.UserInfo{
+			Sid:       keymanagerUserInfo.Sid,
+			Sub:       keymanagerUserInfo.Sub,
+			UserName:  keymanagerUserInfo.UserName,
+			UserEmail: keymanagerUserInfo.UserEmail,
+		}
+
+		s.renderTokenResponse(w, r, userInfo)
 		return
 	}
 
@@ -54,14 +64,22 @@ func token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ok, err := CodeKeys.ValidateInnerToken(code)
+		keymanagerUserInfo, err := s.codeKeys.ValidateInnerToken(code)
 		if err != nil {
 			badRequest(w, r, "Failed to validate code token "+err.Error())
 			return
 		}
 
+		// Convert keymanager UserInfo to user module UserInfo
+		userInfo := &user.UserInfo{
+			Sid:       keymanagerUserInfo.Sid,
+			Sub:       keymanagerUserInfo.Sub,
+			UserName:  keymanagerUserInfo.UserName,
+			UserEmail: keymanagerUserInfo.UserEmail,
+		}
+
 		//TODO: remember visited code to reject it next time
-		renderTokenResponse(w, r, ok)
+		s.renderTokenResponse(w, r, userInfo)
 		return
 	}
 
@@ -83,7 +101,7 @@ type TokenResponse struct {
 	TokenType    string `json:"token_type"`
 }
 
-func renderTokenResponse(w http.ResponseWriter, r *http.Request, userInfo *UserInfo) {
+func (s *Server) renderTokenResponse(w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
 	claims := gojwt.MapClaims{
 		"sid":  userInfo.Sid,
 		"sub":  userInfo.Sub,
@@ -94,14 +112,14 @@ func renderTokenResponse(w http.ResponseWriter, r *http.Request, userInfo *UserI
 		claims["email"] = userInfo.UserEmail
 	}
 
-	tokenString, err := TokenKeys.RenderJwtToken(claims)
+	tokenString, err := s.tokenKeys.RenderJwtToken(claims)
 
 	if err != nil {
 		badRequest(w, r, "Failed to sign new token for username="+userInfo.String()+" "+err.Error())
 		return
 	}
 
-	refreshTokenString, err := RefreshKeys.SignInnerToken(userInfo)
+	refreshTokenString, err := s.refreshKeys.SignInnerToken(userInfo)
 	if err != nil {
 		badRequest(w, r, "Failed to sign new refresh token for username="+userInfo.String()+" "+err.Error())
 		return
@@ -110,7 +128,7 @@ func renderTokenResponse(w http.ResponseWriter, r *http.Request, userInfo *UserI
 	log.Println("Generated refresh token for user =", userInfo, "\n", refreshTokenString)
 	response := TokenResponse{
 		TokenType:    "Bearer",
-		ExpiresIn:    TokenKeys.ExpirationSeconds() - 3, // remove 3 seconds to lower collision probability
+		ExpiresIn:    s.tokenKeys.ExpirationSeconds() - 3, // remove 3 seconds to lower collision probability
 		IdToken:      tokenString,
 		AccessToken:  tokenString,
 		RefreshToken: refreshTokenString,

@@ -4,7 +4,7 @@
 services:
   mock-auth:
     build:
-      context: ../../oauth2-bro/
+      context: ../../
       dockerfile: Dockerfile
 
     image: !reset null

@@ -1,13 +1,20 @@
-package main
+package keymanager
 
 import (
 	"fmt"
+
 	gojwt "github.com/golang-jwt/jwt/v5"
+	"jonnyzzz.com/oauth2-bro/user"
 )
 
+// UserInfoProvider interface for getting user information
+type UserInfoProvider interface {
+	ToInnerJwtClaims() map[string]string
+}
+
 type BroInnerKeys interface {
-	SignInnerToken(userInfo *UserInfo) (string, error)
-	ValidateInnerToken(tokenString string) (*UserInfo, error)
+	SignInnerToken(userInfo UserInfoProvider) (string, error)
+	ValidateInnerToken(tokenString string) (*user.UserInfo, error)
 	ToBroKeys() BroKeys
 }
 
@@ -27,7 +34,7 @@ func (tk *broInnerKeysImpl) ToBroKeys() BroKeys {
 	return tk.Keys
 }
 
-func (tk *broInnerKeysImpl) SignInnerToken(userInfo *UserInfo) (string, error) {
+func (tk *broInnerKeysImpl) SignInnerToken(userInfo UserInfoProvider) (string, error) {
 	claims := gojwt.MapClaims{
 		"bro": tk.broVersion,
 	}
@@ -40,11 +47,11 @@ func (tk *broInnerKeysImpl) SignInnerToken(userInfo *UserInfo) (string, error) {
 	return token, err
 }
 
-func (tk *broInnerKeysImpl) ValidateInnerToken(tokenString string) (*UserInfo, error) {
+func (tk *broInnerKeysImpl) ValidateInnerToken(tokenString string) (*user.UserInfo, error) {
 	type InnerClaims struct {
 		Bro string `json:"bro"`
 		gojwt.RegisteredClaims
-		UserInfo
+		user.UserInfo
 	}
 
 	token, err := tk.Keys.ValidateJwtToken(tokenString, &InnerClaims{})

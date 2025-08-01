@@ -1,7 +1,6 @@
-package main
+package user
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -10,40 +9,32 @@ import (
 	"strings"
 )
 
-type UserInfo struct {
-	Sid       string `json:"bro_sid"`
-	Sub       string `json:"bro_sub"`
-	UserName  string `json:"bro_name"`
-	UserEmail string `json:"bro_email"` //can be empty!
+// UserManager holds all user-related state and provides methods for user operations
+type UserManager struct {
+	ipMaskCache []*net.IPNet
+	emailDomain string
 }
 
-func (u *UserInfo) String() string {
-	return fmt.Sprintf("UserInfo{sid=%s, sub=%s, name=%s, email=%s}", u.Sid, u.Sub, u.UserName, u.UserEmail)
-}
+// Ensure UserManager implements UserInfoProvider interface
+var _ UserInfoProvider = (*UserManager)(nil)
 
-func (u *UserInfo) ToInnerJwtClaims() map[string]string {
-	// Marshal the struct to JSON
-	jsonData, err := json.Marshal(u)
-	if err != nil {
-		log.Panicln("Failed to write JSON")
+// NewUserManager creates a new UserManager instance with all dependencies
+func NewUserManager() *UserManager {
+	um := &UserManager{
+		ipMaskCache: nil,
+		emailDomain: os.Getenv("OAUTH2_BRO_EMAIL_DOMAIN"),
 	}
-	var m map[string]string
-	err = json.Unmarshal(jsonData, &m)
-	if err != nil {
-		log.Panicln("Failed to read JSON")
-	}
-	return m
+
+	// Initialize IP masks
+	um.initIpMasks()
+
+	return um
 }
 
-// ipMaskCache stores the parsed IP masks from the environment variable
-var ipMaskCache []*net.IPNet
+// Client functionality moved to client module
 
-// init_ip_masks initializes the IP masks from the environment variable.
-// This function should be called at startup and in tests when needed.
-func init_ip_masks() {
-	// Reset the cache
-	ipMaskCache = nil
-
+// initIpMasks initializes the IP masks from the environment variable
+func (um *UserManager) initIpMasks() {
 	masksStr := os.Getenv("OAUTH2_BRO_ALLOWED_IP_MASKS")
 	if masksStr == "" {
 		return // No masks specified, all IPs are allowed
@@ -58,25 +49,19 @@ func init_ip_masks() {
 
 		_, ipNet, err := net.ParseCIDR(maskStr)
 		if err != nil {
-			fmt.Printf("Warning: Invalid IP mask format '%s': %v\n", maskStr, err)
+			log.Printf("Warning: Invalid IP mask format '%s': %v", maskStr, err)
 			continue
 		}
 
-		ipMaskCache = append(ipMaskCache, ipNet)
+		um.ipMaskCache = append(um.ipMaskCache, ipNet)
 	}
 }
 
-// getAllowedIPMasks returns the list of IP networks.
-// If no masks are configured, it returns nil, which means all IPs are allowed.
-func getAllowedIPMasks() []*net.IPNet {
-	return ipMaskCache
-}
+// Client functionality moved to client module
 
-// isIPAllowed checks if the given IP is allowed based on the configured IP masks.
-// If no masks are configured, all IPs are allowed.
-func isIPAllowed(ipStr string) bool {
-	masks := getAllowedIPMasks()
-	if len(masks) == 0 {
+// isIPAllowed checks if the given IP is allowed based on the configured IP masks
+func (um *UserManager) isIPAllowed(ipStr string) bool {
+	if len(um.ipMaskCache) == 0 {
 		return true // No masks specified, all IPs are allowed
 	}
 
@@ -85,7 +70,7 @@ func isIPAllowed(ipStr string) bool {
 		return false // Not a valid IP
 	}
 
-	for _, mask := range masks {
+	for _, mask := range um.ipMaskCache {
 		if mask.Contains(ip) {
 			return true
 		}
@@ -94,12 +79,17 @@ func isIPAllowed(ipStr string) bool {
 	return false
 }
 
+// GetEmailDomain returns the configured email domain
+func (um *UserManager) GetEmailDomain() string {
+	return um.emailDomain
+}
+
 // ResolveUserInfoFromRequest extracts client IP from HTTP request headers,
 // normalizes it, and creates a human-readable username from it.
 // It respects X-Forwarded-For and similar HTTP headers to resolve the requestor IP.
 // If IP address masks are configured via OAUTH2_BRO_ALLOWED_IP_MASKS environment variable,
 // only IPs matching those masks will be processed. Returns nil for IPs that don't match.
-func ResolveUserInfoFromRequest(r *http.Request) *UserInfo {
+func (um *UserManager) ResolveUserInfoFromRequest(r *http.Request) *UserInfo {
 	// Extract IP address from request
 	ip := extractIP(r)
 
@@ -107,7 +97,7 @@ func ResolveUserInfoFromRequest(r *http.Request) *UserInfo {
 	normalizedIP := normalizeIP(ip)
 
 	// Check if the IP is allowed based on configured masks
-	if !isIPAllowed(normalizedIP) {
+	if !um.isIPAllowed(normalizedIP) {
 		fmt.Println("User with IP " + normalizedIP + " is not allowed")
 		return nil // IP is not in the allowed ranges
 	}
@@ -118,7 +108,7 @@ func ResolveUserInfoFromRequest(r *http.Request) *UserInfo {
 	// Create hash from IP for Sid and Sub
 	// Create and return UserInfo
 	email := ""
-	emailDomain := os.Getenv("OAUTH2_BRO_EMAIL_DOMAIN")
+	emailDomain := um.GetEmailDomain()
 	if len(emailDomain) > 0 {
 		email = fmt.Sprintf("%s@%s", username, emailDomain)
 	}
