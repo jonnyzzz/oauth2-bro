@@ -1,6 +1,7 @@
 package broserver
 
 import (
+	"log"
 	"net/http"
 
 	"jonnyzzz.com/oauth2-bro/client"
@@ -79,6 +80,9 @@ func (s *Server) setupRoutesOnMux(mux *http.ServeMux) {
 // wrapResponse wraps HTTP handlers with common response handling
 func (s *Server) wrapResponse(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		log.Println("request", request.URL.Path)
+		writer.Header().Set("Expires", "11 Aug 1984 14:21:33 GMT")
+		writer.Header().Set("X-oauth2-bro-version", s.version)
 		handler(writer, request)
 	}
 }
