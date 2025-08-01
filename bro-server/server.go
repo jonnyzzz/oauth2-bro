@@ -45,24 +45,13 @@ func NewServer(config ServerConfig) *Server {
 	}
 }
 
-// SetupServer initializes the HTTP server with the provided configuration
-func SetupServer(config ServerConfig) {
+func SetupServer(config ServerConfig, mux *http.ServeMux) {
 	server := NewServer(config)
-	server.setupRoutes()
+	server.setupRoutes(mux)
 }
 
-// setupRoutes configures all HTTP routes
-func (s *Server) setupRoutes() {
-	http.HandleFunc("/", s.wrapResponse(s.home))
-	http.HandleFunc("/favicon.ico", s.wrapResponse(s.favicon))
-	http.HandleFunc("/health", s.wrapResponse(s.health))
-	http.HandleFunc("/jwks", s.wrapResponse(s.jwks))
-	http.HandleFunc("/login", s.wrapResponse(s.login))
-	http.HandleFunc("/token", s.wrapResponse(s.token))
-}
-
-// setupRoutesOnMux configures all HTTP routes on a specific mux
-func (s *Server) setupRoutesOnMux(mux *http.ServeMux) {
+// setupRoutes configures all HTTP routes on a specific mux
+func (s *Server) setupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/", s.wrapResponse(s.home))
 	mux.HandleFunc("/favicon.ico", s.wrapResponse(s.favicon))
 	mux.HandleFunc("/health", s.wrapResponse(s.health))

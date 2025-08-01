@@ -78,15 +78,16 @@ func main() {
 	userManager := user.NewUserResolver()
 	clientManager := client.NewClientManager()
 
-	// Setup the HTTP server with key configuration
+	mux := http.NewServeMux()
+
 	browserver.SetupServer(browserver.ServerConfig{
 		RefreshKeys:        keyManager.RefreshKeys,
 		CodeKeys:           keyManager.CodeKeys,
 		TokenKeys:          keyManager.TokenKeys,
 		UserResolver:       userManager,
-		ClientInfoProvider: clientManager, // ClientManager implements ClientInfoProvider
+		ClientInfoProvider: clientManager,
 		Version:            version,
-	})
+	}, mux)
 
 	addr := resolveBindAddress()
 	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_FILE")
@@ -95,11 +96,11 @@ func main() {
 	var err error
 	if len(certFile) > 0 {
 		fmt.Printf("Listening https://%s\n", addr)
-		err = http.ListenAndServeTLS(addr, certFile, certKeyFile, nil)
+		err = http.ListenAndServeTLS(addr, certFile, certKeyFile, mux)
 	} else {
 		//goland:noinspection HttpUrlsUsage
 		fmt.Printf("Listening http://%s\n", addr)
-		err = http.ListenAndServe(addr, nil)
+		err = http.ListenAndServe(addr, mux)
 	}
 
 	if err != nil {

@@ -84,9 +84,9 @@ func TestClientIdValidation(t *testing.T) {
 }
 
 func TestClientInfoProviderInterface(t *testing.T) {
-	// Test with ClientManager implementation
-	t.Run("ClientManager Implementation", func(t *testing.T) {
-		// Set up environment for ClientManager test
+	// Test with clientManagerImpl implementation
+	t.Run("clientManagerImpl Implementation", func(t *testing.T) {
+		// Set up environment for clientManagerImpl test
 		originalCreds := os.Getenv("OAUTH2_BRO_CLIENT_CREDENTIALS")
 		defer os.Setenv("OAUTH2_BRO_CLIENT_CREDENTIALS", originalCreds)
 

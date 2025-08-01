@@ -51,7 +51,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 	// Create server instance and setup routes on a new mux
 	serverInstance := NewServer(config)
 	mux := http.NewServeMux()
-	serverInstance.setupRoutesOnMux(mux)
+	serverInstance.setupRoutes(mux)
 
 	// Create a test server
 	server := httptest.NewServer(mux)
@@ -362,7 +362,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 	// Create server instance and setup routes on a new mux
 	serverInstance := NewServer(config)
 	mux := http.NewServeMux()
-	serverInstance.setupRoutesOnMux(mux)
+	serverInstance.setupRoutes(mux)
 
 	// Set up environment variables for the test
 	os.Setenv("OAUTH2_BRO_MAKE_ROOT_SECRET", "test-secret")
@@ -683,7 +683,7 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 	// Create server instance and setup routes on a new mux
 	serverInstance := NewServer(config)
 	mux := http.NewServeMux()
-	serverInstance.setupRoutesOnMux(mux)
+	serverInstance.setupRoutes(mux)
 
 	// Create a test server
 	server := httptest.NewServer(mux)

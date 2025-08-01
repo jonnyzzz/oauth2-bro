@@ -6,29 +6,27 @@ import (
 	"strings"
 )
 
-// ClientManager holds all client-related state and provides methods for client operations
-type ClientManager struct {
+// clientManagerImpl holds all client-related state and provides methods for client operations
+type clientManagerImpl struct {
 	clientCredentials map[string]string
 }
 
-// NewClientManager creates a new ClientManager instance with all dependencies
-func NewClientManager() *ClientManager {
-	cm := &ClientManager{
-		clientCredentials: make(map[string]string),
+// NewClientManager creates a new clientManagerImpl instance with all dependencies
+func NewClientManager() ClientInfoProvider {
+	cm := &clientManagerImpl{
+		clientCredentials: initClientCredentials(),
 	}
-
-	// Initialize client credentials
-	cm.initClientCredentials()
-
 	return cm
 }
 
 // initClientCredentials initializes the client ID and secret validation
-func (cm *ClientManager) initClientCredentials() {
-	// Read client credentials from environment variable
-	clientCredsStr := os.Getenv("OAUTH2_BRO_CLIENT_CREDENTIALS")
-	if len(clientCredsStr) > 0 {
-		credPairs := strings.Split(clientCredsStr, ",")
+func initClientCredentials() map[string]string {
+
+	clientCredentials := make(map[string]string)
+
+	env := os.Getenv("OAUTH2_BRO_CLIENT_CREDENTIALS")
+	if len(env) > 0 {
+		credPairs := strings.Split(env, ",")
 		for _, pair := range credPairs {
 			pair = strings.TrimSpace(pair)
 			if len(pair) == 0 {
@@ -45,17 +43,19 @@ func (cm *ClientManager) initClientCredentials() {
 			clientSecret := strings.TrimSpace(parts[1])
 
 			if len(clientId) > 0 && len(clientSecret) > 0 {
-				cm.clientCredentials[clientId] = clientSecret
+				clientCredentials[clientId] = clientSecret
 				log.Printf("Registered credentials for client ID: %s", clientId)
 			}
 		}
 	} else {
 		log.Printf("No client credentials specified, allowing all clients")
 	}
+
+	return clientCredentials
 }
 
 // IsClientIdAllowed checks if the given client ID is allowed
-func (cm *ClientManager) IsClientIdAllowed(clientId string) bool {
+func (cm *clientManagerImpl) IsClientIdAllowed(clientId string) bool {
 	if len(cm.clientCredentials) == 0 {
 		return true
 	}
@@ -64,7 +64,7 @@ func (cm *ClientManager) IsClientIdAllowed(clientId string) bool {
 }
 
 // IsClientAllowed checks if the given client ID and secret are allowed
-func (cm *ClientManager) IsClientAllowed(clientId string, clientSecret string) bool {
+func (cm *clientManagerImpl) IsClientAllowed(clientId string, clientSecret string) bool {
 	// First check if the client ID is allowed
 	if !cm.IsClientIdAllowed(clientId) {
 		return false
@@ -83,6 +83,3 @@ func (cm *ClientManager) IsClientAllowed(clientId string, clientSecret string) b
 
 	return storedSecret == clientSecret
 }
-
-// Ensure ClientManager implements ClientInfoProvider interface
-var _ ClientInfoProvider = (*ClientManager)(nil)
