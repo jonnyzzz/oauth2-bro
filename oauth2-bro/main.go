@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"jonnyzzz.com/oauth2-bro/keymanager"
 	"log"
 	"net/http"
 	"os"
@@ -10,7 +11,6 @@ import (
 	browserver "jonnyzzz.com/oauth2-bro/bro-server"
 	"jonnyzzz.com/oauth2-bro/client"
 	"jonnyzzz.com/oauth2-bro/user"
-	"jonnyzzz.com/oauth2-bro/utils"
 )
 
 var version = "SNAPSHOT"
@@ -107,10 +107,10 @@ func main() {
 
 	fmt.Println("Starting OAuth2-bro v.", version)
 	fmt.Println("")
-	utils.PrintOAuth2BroBanner()
+	printOAuth2BroBanner()
 
 	// Create key manager with all dependencies
-	keyManager := NewKeyManager()
+	keyManager := keymanager.NewKeyManager()
 
 	// Create user manager with all dependencies
 	userManager := user.NewUserManager()

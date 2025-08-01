@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
+	"github.com/rakutentech/jwk-go/jwk"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +18,11 @@ import (
 	"jonnyzzz.com/oauth2-bro/keymanager"
 	"jonnyzzz.com/oauth2-bro/user"
 )
+
+type Keys struct {
+	// Keys is an array of JSON web keys.
+	Keys []*jwk.JWK `json:"keys"`
+}
 
 func TestOAuth2CodeFlow(t *testing.T) {
 	// Set up environment for testing
@@ -157,7 +163,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 			}
 
 			// Parse JWKS data
-			var keys keymanager.Keys
+			var keys Keys
 			err = json.Unmarshal(jwksBody, &keys)
 			if err != nil {
 				t.Fatalf("Failed to parse JWKS data: %v", err)
@@ -533,7 +539,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 				}
 
 				// Parse JWKS data
-				var keys keymanager.Keys
+				var keys Keys
 				err = json.Unmarshal(jwksBody, &keys)
 				if err != nil {
 					t.Fatalf("Failed to parse JWKS data: %v", err)

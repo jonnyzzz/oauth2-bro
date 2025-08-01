@@ -19,12 +19,6 @@ func TestUserInfoProviderInterface(t *testing.T) {
 		userManager := NewUserManager()
 		testUserInfoProvider(t, userManager)
 	})
-
-	// Test with MockUserInfoProvider implementation
-	t.Run("MockUserInfoProvider Implementation", func(t *testing.T) {
-		mockProvider := NewMockUserInfoProvider()
-		testUserInfoProvider(t, mockProvider)
-	})
 }
 
 func testUserInfoProvider(t *testing.T, provider UserInfoProvider) {

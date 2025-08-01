@@ -94,13 +94,6 @@ func TestClientInfoProviderInterface(t *testing.T) {
 		clientManager := NewClientManager()
 		testClientInfoProvider(t, clientManager)
 	})
-
-	// Test with MockClientInfoProvider implementation
-	t.Run("MockClientInfoProvider Implementation", func(t *testing.T) {
-		mockProvider := NewMockClientInfoProvider()
-		mockProvider.AddClient("test-client", "test-secret")
-		testClientInfoProvider(t, mockProvider)
-	})
 }
 
 func testClientInfoProvider(t *testing.T, provider ClientInfoProvider) {

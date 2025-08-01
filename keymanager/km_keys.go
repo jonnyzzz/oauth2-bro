@@ -8,10 +8,7 @@ import (
 
 type BroKeys interface {
 	KeyId() string
-	PrivateKey() *rsa.PrivateKey
 	ExpirationSeconds() int
-
-	SigningMethod() *gojwt.SigningMethodRSA
 
 	RenderJwtToken(claims gojwt.MapClaims) (string, error)
 	ValidateJwtToken(tokenString string, claims gojwt.Claims) (*gojwt.Token, error)
@@ -22,10 +19,6 @@ type broKeysImpl struct {
 	privateKey        *rsa.PrivateKey
 	keyId             string
 	expirationSeconds int
-}
-
-func (tk *broKeysImpl) PrivateKey() *rsa.PrivateKey {
-	return tk.privateKey
 }
 
 func (tk *broKeysImpl) KeyId() string {

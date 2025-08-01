@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 )
 
 type UserInfo struct {
@@ -31,22 +30,3 @@ func (u *UserInfo) ToInnerJwtClaims() map[string]string {
 	}
 	return m
 }
-
-// Legacy functions for backward compatibility
-// These are deprecated and will be removed in future versions
-// Use UserManager instead
-
-// InitIpMasks is deprecated. Use NewUserManager() instead.
-func InitIpMasks() {
-	// This function is kept for backward compatibility but does nothing
-	// The UserManager handles IP mask initialization automatically
-}
-
-// Legacy function for backward compatibility
-// This is deprecated and will be removed in future versions
-// Use UserManager.ResolveUserInfoFromRequest() instead.
-func ResolveUserInfoFromRequest(r *http.Request, userManager *UserManager) *UserInfo {
-	return userManager.ResolveUserInfoFromRequest(r)
-}
-
-// Helper functions moved to user-manager.go

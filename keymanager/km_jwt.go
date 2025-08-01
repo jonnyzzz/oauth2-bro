@@ -25,7 +25,7 @@ func (tk *broKeysImpl) RenderJwtToken(claims gojwt.MapClaims) (string, error) {
 	token.Header["kid"] = tk.KeyId()
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(tk.PrivateKey())
+	tokenString, err := token.SignedString(tk.privateKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign new token %s", err.Error())
 	}
@@ -42,7 +42,7 @@ func (tk *broKeysImpl) ValidateJwtToken(tokenString string, claims gojwt.Claims)
 		}
 
 		//TODO: multiple public keys check
-		return &tk.PrivateKey().PublicKey, nil
+		return &tk.privateKey.PublicKey, nil
 	}, gojwt.WithExpirationRequired())
 
 	if err != nil {
@@ -53,10 +53,9 @@ func (tk *broKeysImpl) ValidateJwtToken(tokenString string, claims gojwt.Claims)
 	return token, nil
 }
 
-// Jwks generates a JWKS (JSON Web Key Set) from the BroKeys instance
 func (tk *broKeysImpl) Jwks() ([]byte, error) {
 	spec, err := (&jwk.KeySpec{
-		Key:       tk.PrivateKey(),
+		Key:       tk.privateKey,
 		KeyID:     tk.KeyId(),
 		Use:       "sig",
 		Algorithm: tk.SigningMethod().Alg(),
