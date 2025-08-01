@@ -19,8 +19,8 @@ type ServerConfig struct {
 	Version            string
 }
 
-// Server holds all the server state and handlers
-type Server struct {
+// server holds all the server state and handlers
+type server struct {
 	refreshKeys        keymanager.BroInnerKeys
 	codeKeys           keymanager.BroInnerKeys
 	tokenKeys          keymanager.BroKeys
@@ -33,8 +33,8 @@ const (
 	rootCookieName = "oauth2-bro-make-me-root"
 )
 
-func newServer(config ServerConfig) *Server {
-	return &Server{
+func newServer(config ServerConfig) *server {
+	return &server{
 		refreshKeys:        config.RefreshKeys,
 		codeKeys:           config.CodeKeys,
 		tokenKeys:          config.TokenKeys,
@@ -50,7 +50,7 @@ func SetupServer(config ServerConfig, mux *http.ServeMux) {
 }
 
 // setupRoutes configures all HTTP routes on a specific mux
-func (s *Server) setupRoutes(mux *http.ServeMux) {
+func (s *server) setupRoutes(mux *http.ServeMux) {
 	wrapResponse := bsc.WrapResponseFactory(s.version)
 
 	mux.HandleFunc("/", wrapResponse(s.home))

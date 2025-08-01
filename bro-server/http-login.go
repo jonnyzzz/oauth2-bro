@@ -15,7 +15,7 @@ func getMakeRootSecret() string {
 	return os.Getenv("OAUTH2_BRO_MAKE_ROOT_SECRET")
 }
 
-func (s *Server) login(w http.ResponseWriter, r *http.Request) {
+func (s *server) login(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	queryParams := r.URL.Query()
 
@@ -65,7 +65,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 }
 
 // parseUserInfoFromQueryParams extracts user information from query parameters
-func (s *Server) parseUserInfoFromQueryParams(queryParams url.Values) *user.UserInfo {
+func (s *server) parseUserInfoFromQueryParams(queryParams url.Values) *user.UserInfo {
 	// Create a UserInfo object from the query parameters
 	sid := queryParams.Get("sid")
 	sub := queryParams.Get("sub")
@@ -115,7 +115,7 @@ func (s *Server) parseUserInfoFromQueryParams(queryParams url.Values) *user.User
 }
 
 // handleMakeRoot handles the "Make me Root" functionality
-func (s *Server) handleMakeRoot(w http.ResponseWriter, r *http.Request, queryParams url.Values) {
+func (s *server) handleMakeRoot(w http.ResponseWriter, r *http.Request, queryParams url.Values) {
 
 	// Parse user info from query parameters
 	userInfo := s.parseUserInfoFromQueryParams(queryParams)
@@ -150,7 +150,7 @@ func (s *Server) handleMakeRoot(w http.ResponseWriter, r *http.Request, queryPar
 }
 
 // handleNormalLogin handles the normal login flow
-func (s *Server) handleNormalLogin(w http.ResponseWriter, r *http.Request, queryParams url.Values, customUserInfo *user.UserInfo) {
+func (s *server) handleNormalLogin(w http.ResponseWriter, r *http.Request, queryParams url.Values, customUserInfo *user.UserInfo) {
 	// Extract the parameters from your example
 	responseType := queryParams.Get("response_type") // "code"
 	if responseType != "code" {

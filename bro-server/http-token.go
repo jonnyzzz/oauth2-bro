@@ -10,7 +10,7 @@ import (
 	"jonnyzzz.com/oauth2-bro/user"
 )
 
-func (s *Server) token(w http.ResponseWriter, r *http.Request) {
+func (s *server) token(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	if r.Method != "POST" {
 		bsc.BadRequest(w, r, "Only POST method is supported")
@@ -102,7 +102,7 @@ type TokenResponse struct {
 	TokenType    string `json:"token_type"`
 }
 
-func (s *Server) renderTokenResponse(w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
+func (s *server) renderTokenResponse(w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
 	claims := gojwt.MapClaims{
 		"sid":  userInfo.Sid,
 		"sub":  userInfo.Sub,
