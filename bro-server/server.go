@@ -1,7 +1,7 @@
 package broserver
 
 import (
-	bro_server_common "jonnyzzz.com/oauth2-bro/bro-server-common"
+	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
 	"net/http"
 
 	"jonnyzzz.com/oauth2-bro/client"
@@ -51,11 +51,11 @@ func SetupServer(config ServerConfig, mux *http.ServeMux) {
 
 // setupRoutes configures all HTTP routes on a specific mux
 func (s *Server) setupRoutes(mux *http.ServeMux) {
-	wrapResponse := bro_server_common.WrapResponseFactory(s.version)
+	wrapResponse := bsc.WrapResponseFactory(s.version)
 
 	mux.HandleFunc("/", wrapResponse(s.home))
-	mux.HandleFunc("/favicon.ico", wrapResponse(bro_server_common.FaviconHandler))
-	mux.HandleFunc("/health", wrapResponse(bro_server_common.HealthHandler))
+	mux.HandleFunc("/favicon.ico", wrapResponse(bsc.FaviconHandler))
+	mux.HandleFunc("/health", wrapResponse(bsc.HealthHandler))
 	mux.HandleFunc("/jwks", wrapResponse(s.jwks))
 	mux.HandleFunc("/login", wrapResponse(s.login))
 	mux.HandleFunc("/token", wrapResponse(s.token))
