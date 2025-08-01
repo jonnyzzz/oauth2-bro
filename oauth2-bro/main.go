@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"jonnyzzz.com/oauth2-bro/keymanager"
 	"log"
 	"net/http"
 	"os"
+
+	"jonnyzzz.com/oauth2-bro/keymanager"
 
 	browserver "jonnyzzz.com/oauth2-bro/bro-server"
 	"jonnyzzz.com/oauth2-bro/client"
@@ -34,6 +35,7 @@ func printHelp() {
 	fmt.Println("  OAUTH2_BRO_ALLOWED_IP_MASKS       Comma-separated list of allowed IP masks")
 	fmt.Println("  OAUTH2_BRO_EMAIL_DOMAIN           Email domain for user emails")
 	fmt.Println("  OAUTH2_BRO_MAKE_ROOT_SECRET       Secret for making root user")
+	fmt.Println("  OAUTH2_BRO_PROXY_TARGET           Target server URL for proxy mode (enables proxy mode when set)")
 	fmt.Println("")
 	fmt.Println("Key Management:")
 	fmt.Println("  OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE     Path to token RSA private key")
@@ -52,6 +54,7 @@ func printHelp() {
 	fmt.Println("  oauth2-bro --version                          # Show version")
 	fmt.Println("  OAUTH2_BRO_BIND_PORT=8080 oauth2-bro         # Start on port 8080")
 	fmt.Println("  OAUTH2_BRO_BIND_HOST=0.0.0.0 oauth2-bro      # Bind to all interfaces")
+	fmt.Println("  OAUTH2_BRO_PROXY_TARGET=http://localhost:8080 oauth2-bro  # Start in proxy mode")
 	fmt.Println("")
 	fmt.Println("Endpoints:")
 	fmt.Println("  GET  /         - Home page with OAuth2 information")
@@ -60,6 +63,10 @@ func printHelp() {
 	fmt.Println("  GET  /login    - OAuth2 authorization endpoint")
 	fmt.Println("  POST /token    - OAuth2 token endpoint")
 	fmt.Println("  GET  /favicon.ico - Favicon")
+	fmt.Println("")
+	fmt.Println("Proxy Mode Endpoints:")
+	fmt.Println("  GET  /oauth2-bro/jwks - JSON Web Key Set (proxy mode)")
+	fmt.Println("  *    /*        - All other requests are proxied to target server")
 }
 
 func printVersion() {
@@ -78,6 +85,12 @@ func resolveBindAddress() string {
 	}
 
 	return bindHost + ":" + bindPort
+}
+
+// initTokenKeys initializes only the token keys for proxy mode
+func initTokenKeys() keymanager.BroKeys {
+	keyManager := keymanager.NewKeyManager()
+	return keyManager.TokenKeys
 }
 
 func main() {
@@ -118,17 +131,53 @@ func main() {
 	// Create client manager with all dependencies
 	clientManager := client.NewClientManager()
 
-	// Setup the HTTP server with key configuration
-	browserver.SetupServer(browserver.ServerConfig{
-		RefreshKeys:        keyManager.RefreshKeys,
-		CodeKeys:           keyManager.CodeKeys,
-		TokenKeys:          keyManager.TokenKeys,
-		UserManager:        userManager,
-		ClientInfoProvider: clientManager, // ClientManager implements ClientInfoProvider
-		UserInfoProvider:   userManager,   // UserManager implements UserInfoProvider
-		Version:            version,
-	})
+	// Create a new ServeMux for routing
+	mux := http.NewServeMux()
 
+	// Determine server mode and set up exactly one server
+	serverMode := determineServerMode()
+
+	switch serverMode {
+	case "proxy":
+		target := os.Getenv("OAUTH2_BRO_PROXY_TARGET")
+		fmt.Printf("Starting in proxy mode, target: %s\n", target)
+
+		// Setup the HTTP server with proxy configuration
+		proxyServer := browserver.NewProxyServer(browserver.ProxyServerConfig{
+			TokenKeys:          initTokenKeys(),
+			UserManager:        userManager,
+			ClientInfoProvider: clientManager,
+			UserInfoProvider:   userManager,
+			Version:            version,
+			TargetURL:          target,
+		})
+		proxyServer.SetupRoutesOnMux(mux)
+
+	case "regular":
+		fmt.Println("Starting in regular OAuth2 server mode")
+
+		// Setup the HTTP server with key configuration
+		server := browserver.NewServer(browserver.ServerConfig{
+			RefreshKeys:        keyManager.RefreshKeys,
+			CodeKeys:           keyManager.CodeKeys,
+			TokenKeys:          keyManager.TokenKeys,
+			UserManager:        userManager,
+			ClientInfoProvider: clientManager, // ClientManager implements ClientInfoProvider
+			UserInfoProvider:   userManager,   // UserManager implements UserInfoProvider
+			Version:            version,
+		})
+		server.SetupRoutesOnMux(mux)
+
+	default:
+		log.Fatalf("Unknown server mode: %s", serverMode)
+	}
+
+	// Start the HTTP/HTTPS server
+	startServer(mux)
+}
+
+// startServer configures and starts the HTTP/HTTPS server with the provided mux
+func startServer(mux *http.ServeMux) {
 	addr := resolveBindAddress()
 	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_FILE")
 	certKeyFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_KEY_FILE")
@@ -136,14 +185,23 @@ func main() {
 	var err error
 	if len(certFile) > 0 {
 		fmt.Printf("Listening https://%s\n", addr)
-		err = http.ListenAndServeTLS(addr, certFile, certKeyFile, nil)
+		err = http.ListenAndServeTLS(addr, certFile, certKeyFile, mux)
 	} else {
 		//goland:noinspection HttpUrlsUsage
 		fmt.Printf("Listening http://%s\n", addr)
-		err = http.ListenAndServe(addr, nil)
+		err = http.ListenAndServe(addr, mux)
 	}
 
 	if err != nil {
 		log.Fatalln("Failed to start HTTP server on ", addr, ": ", err)
 	}
+}
+
+// determineServerMode determines which server mode to use based on environment variables
+func determineServerMode() string {
+	target := os.Getenv("OAUTH2_BRO_PROXY_TARGET")
+	if target != "" {
+		return "proxy"
+	}
+	return "regular"
 }

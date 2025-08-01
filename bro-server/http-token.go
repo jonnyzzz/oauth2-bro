@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	gojwt "github.com/golang-jwt/jwt/v5"
 	"jonnyzzz.com/oauth2-bro/user"
 )
 
@@ -102,18 +101,7 @@ type TokenResponse struct {
 }
 
 func (s *Server) renderTokenResponse(w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
-	claims := gojwt.MapClaims{
-		"sid":  userInfo.Sid,
-		"sub":  userInfo.Sub,
-		"name": userInfo.UserName,
-	}
-
-	if len(userInfo.UserEmail) > 0 {
-		claims["email"] = userInfo.UserEmail
-	}
-
-	tokenString, err := s.tokenKeys.RenderJwtToken(claims)
-
+	tokenString, err := GenerateJWTToken(s.tokenKeys, userInfo)
 	if err != nil {
 		badRequest(w, r, "Failed to sign new token for username="+userInfo.String()+" "+err.Error())
 		return
