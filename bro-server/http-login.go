@@ -1,6 +1,7 @@
 package broserver
 
 import (
+	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
 	"log"
 	"net/http"
 	"net/url"
@@ -119,14 +120,14 @@ func (s *Server) handleMakeRoot(w http.ResponseWriter, r *http.Request, queryPar
 	// Parse user info from query parameters
 	userInfo := s.parseUserInfoFromQueryParams(queryParams)
 	if userInfo == nil {
-		badRequest(w, r, "At least one of sid, sub, name, or email must be provided")
+		bsc.BadRequest(w, r, "At least one of sid, sub, name, or email must be provided")
 		return
 	}
 
 	// Generate a refresh token
 	refreshToken, err := s.refreshKeys.SignInnerToken(userInfo)
 	if err != nil {
-		badRequest(w, r, "Failed to sign refresh token: "+err.Error())
+		bsc.BadRequest(w, r, "Failed to sign refresh token: "+err.Error())
 		return
 	}
 
@@ -145,7 +146,7 @@ func (s *Server) handleMakeRoot(w http.ResponseWriter, r *http.Request, queryPar
 	// Return a success message
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Make me Root cookie set successfully. You can now proceed with normal login."))
+	_, _ = w.Write([]byte("Make me Root cookie set successfully. You can now proceed with normal login."))
 }
 
 // handleNormalLogin handles the normal login flow
@@ -153,23 +154,23 @@ func (s *Server) handleNormalLogin(w http.ResponseWriter, r *http.Request, query
 	// Extract the parameters from your example
 	responseType := queryParams.Get("response_type") // "code"
 	if responseType != "code" {
-		badRequest(w, r, "response_type parameter is "+responseType+" but 'code' is only supported")
+		bsc.BadRequest(w, r, "response_type parameter is "+responseType+" but 'code' is only supported")
 		return
 	}
 
 	clientId := queryParams.Get("client_id") // "tbe-server"
 	if len(clientId) == 0 {
-		badRequest(w, r, "client_id parameter is missing")
+		bsc.BadRequest(w, r, "client_id parameter is missing")
 		return
 	}
 	if !s.clientInfoProvider.IsClientIdAllowed(clientId) {
-		badRequest(w, r, "client_id '"+clientId+"' parameter is not allowed")
+		bsc.BadRequest(w, r, "client_id '"+clientId+"' parameter is not allowed")
 		return
 	}
 
 	redirectUri := queryParams.Get("redirect_uri") // "http://localhost:8443/api/login/authenticated"
 	if len(redirectUri) == 0 {
-		badRequest(w, r, "redirect_uri parameter is missing")
+		bsc.BadRequest(w, r, "redirect_uri parameter is missing")
 		return
 	}
 
@@ -177,13 +178,13 @@ func (s *Server) handleNormalLogin(w http.ResponseWriter, r *http.Request, query
 
 	parsedRedirectUri, err := url.Parse(redirectUri)
 	if err != nil {
-		badRequest(w, r, "redirect_uri '"+redirectUri+"' is not a valid URL. "+err.Error())
+		bsc.BadRequest(w, r, "redirect_uri '"+redirectUri+"' is not a valid URL. "+err.Error())
 		return
 	}
 
 	redirectParams, err := url.ParseQuery(parsedRedirectUri.RawQuery)
 	if err != nil {
-		badRequest(w, r, "redirect_uri '"+redirectUri+"' query params are incorrect. "+err.Error())
+		bsc.BadRequest(w, r, "redirect_uri '"+redirectUri+"' query params are incorrect. "+err.Error())
 		return
 	}
 
@@ -192,14 +193,14 @@ func (s *Server) handleNormalLogin(w http.ResponseWriter, r *http.Request, query
 	if userInfo == nil {
 		userInfo = s.userResolver.ResolveUserInfoFromRequest(r)
 		if userInfo == nil {
-			badRequest(w, r, "Failed to resolve user info and IP from request")
+			bsc.BadRequest(w, r, "Failed to resolve user info and IP from request")
 			return
 		}
 	}
 
 	codeToken, err := s.codeKeys.SignInnerToken(userInfo)
 	if err != nil {
-		badRequest(w, r, "Failed to sign code token. "+err.Error())
+		bsc.BadRequest(w, r, "Failed to sign code token. "+err.Error())
 		return
 	}
 

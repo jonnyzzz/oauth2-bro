@@ -1,7 +1,7 @@
 package broserver
 
 import (
-	"log"
+	bro_server_common "jonnyzzz.com/oauth2-bro/bro-server-common"
 	"net/http"
 
 	"jonnyzzz.com/oauth2-bro/client"
@@ -33,8 +33,7 @@ const (
 	rootCookieName = "oauth2-bro-make-me-root"
 )
 
-// NewServer creates a new server instance
-func NewServer(config ServerConfig) *Server {
+func newServer(config ServerConfig) *Server {
 	return &Server{
 		refreshKeys:        config.RefreshKeys,
 		codeKeys:           config.CodeKeys,
@@ -46,33 +45,18 @@ func NewServer(config ServerConfig) *Server {
 }
 
 func SetupServer(config ServerConfig, mux *http.ServeMux) {
-	server := NewServer(config)
+	server := newServer(config)
 	server.setupRoutes(mux)
 }
 
 // setupRoutes configures all HTTP routes on a specific mux
 func (s *Server) setupRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/", s.wrapResponse(s.home))
-	mux.HandleFunc("/favicon.ico", s.wrapResponse(s.favicon))
-	mux.HandleFunc("/health", s.wrapResponse(s.health))
-	mux.HandleFunc("/jwks", s.wrapResponse(s.jwks))
-	mux.HandleFunc("/login", s.wrapResponse(s.login))
-	mux.HandleFunc("/token", s.wrapResponse(s.token))
-}
+	wrapResponse := bro_server_common.WrapResponseFactory(s.version)
 
-// wrapResponse wraps HTTP handlers with common response handling
-func (s *Server) wrapResponse(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		log.Println("request", request.URL.Path)
-		writer.Header().Set("Expires", "11 Aug 1984 14:21:33 GMT")
-		writer.Header().Set("X-oauth2-bro-version", s.version)
-		handler(writer, request)
-	}
-}
-
-// badRequest sends a bad request response
-func badRequest(w http.ResponseWriter, _ *http.Request, message string) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusBadRequest)
-	_, _ = w.Write([]byte("Bad Request. \n\n" + message))
+	mux.HandleFunc("/", wrapResponse(s.home))
+	mux.HandleFunc("/favicon.ico", wrapResponse(bro_server_common.FaviconHandler))
+	mux.HandleFunc("/health", wrapResponse(bro_server_common.HealthHandler))
+	mux.HandleFunc("/jwks", wrapResponse(s.jwks))
+	mux.HandleFunc("/login", wrapResponse(s.login))
+	mux.HandleFunc("/token", wrapResponse(s.token))
 }

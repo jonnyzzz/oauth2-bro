@@ -49,7 +49,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 	}
 
 	// Create server instance and setup routes on a new mux
-	serverInstance := NewServer(config)
+	serverInstance := newServer(config)
 	mux := http.NewServeMux()
 	serverInstance.setupRoutes(mux)
 
@@ -360,7 +360,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 	}
 
 	// Create server instance and setup routes on a new mux
-	serverInstance := NewServer(config)
+	serverInstance := newServer(config)
 	mux := http.NewServeMux()
 	serverInstance.setupRoutes(mux)
 
@@ -681,7 +681,7 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 	}
 
 	// Create server instance and setup routes on a new mux
-	serverInstance := NewServer(config)
+	serverInstance := newServer(config)
 	mux := http.NewServeMux()
 	serverInstance.setupRoutes(mux)
 

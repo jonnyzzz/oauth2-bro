@@ -2,6 +2,7 @@ package broserver
 
 import (
 	"encoding/json"
+	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
 	"log"
 	"net/http"
 
@@ -12,25 +13,25 @@ import (
 func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	if r.Method != "POST" {
-		badRequest(w, r, "Only POST method is supported")
+		bsc.BadRequest(w, r, "Only POST method is supported")
 		return
 	}
 
 	err := r.ParseForm()
 	if err != nil {
-		badRequest(w, r, "Failed to parse form parameters "+err.Error())
+		bsc.BadRequest(w, r, "Failed to parse form parameters "+err.Error())
 		return
 	}
 
 	clientId := r.Form.Get("client_id")
 	clientSecret := r.Form.Get("client_secret")
 	if len(clientId) == 0 || len(clientSecret) == 0 {
-		badRequest(w, r, "client_id and client_secret parameters are required")
+		bsc.BadRequest(w, r, "client_id and client_secret parameters are required")
 		return
 	}
 
 	if !s.clientInfoProvider.IsClientAllowed(clientId, clientSecret) {
-		badRequest(w, r, "client_id and client_secret parameters are not allowed")
+		bsc.BadRequest(w, r, "client_id and client_secret parameters are not allowed")
 		return
 	}
 
@@ -41,7 +42,7 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 
 		keymanagerUserInfo, err := s.refreshKeys.ValidateInnerToken(refreshTokenString)
 		if err != nil {
-			badRequest(w, r, "Failed to validate refresh token "+err.Error())
+			bsc.BadRequest(w, r, "Failed to validate refresh token "+err.Error())
 			return
 		}
 
@@ -60,13 +61,13 @@ func (s *Server) token(w http.ResponseWriter, r *http.Request) {
 	if grantType == "authorization_code" {
 		code := r.Form.Get("code")
 		if len(code) == 0 {
-			badRequest(w, r, "code parameter is required")
+			bsc.BadRequest(w, r, "code parameter is required")
 			return
 		}
 
 		keymanagerUserInfo, err := s.codeKeys.ValidateInnerToken(code)
 		if err != nil {
-			badRequest(w, r, "Failed to validate code token "+err.Error())
+			bsc.BadRequest(w, r, "Failed to validate code token "+err.Error())
 			return
 		}
 
@@ -115,13 +116,13 @@ func (s *Server) renderTokenResponse(w http.ResponseWriter, r *http.Request, use
 	tokenString, err := s.tokenKeys.RenderJwtToken(claims)
 
 	if err != nil {
-		badRequest(w, r, "Failed to sign new token for username="+userInfo.String()+" "+err.Error())
+		bsc.BadRequest(w, r, "Failed to sign new token for username="+userInfo.String()+" "+err.Error())
 		return
 	}
 
 	refreshTokenString, err := s.refreshKeys.SignInnerToken(userInfo)
 	if err != nil {
-		badRequest(w, r, "Failed to sign new refresh token for username="+userInfo.String()+" "+err.Error())
+		bsc.BadRequest(w, r, "Failed to sign new refresh token for username="+userInfo.String()+" "+err.Error())
 		return
 	}
 
@@ -136,7 +137,7 @@ func (s *Server) renderTokenResponse(w http.ResponseWriter, r *http.Request, use
 
 	responseData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
-		badRequest(w, nil, "Failed to serialize response "+err.Error())
+		bsc.BadRequest(w, nil, "Failed to serialize response "+err.Error())
 		return
 	}
 	_, err = w.Write(responseData)
