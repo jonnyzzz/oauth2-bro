@@ -278,3 +278,22 @@ with the following flow
 client ---[request without Authorization]--> OAuth2-bro proxy --[added Authorization]--> target service
 ```
 
+This setup can be implemented as side-car container and in that case, there is
+no need to synchronize token keys, since we keep that container as close as possible
+to the actual application container. This works with the assumption that the application
+container is not sending the received Authentication header to any other external services. 
+
+
+### Prompt:
+I want to add the proxy mode to the executable.
+It works as the side-car of the orignal server, the base url (host and port) re receive in 
+parameters.
+
+The logic is the following:
+- read Spec.md to learn more about the system details.
+- the server generates access token keys (use the same environment variables)
+- the server implements JWKS endpoint under the /oauth2-bro/jwks path
+- the server proxies all requests that are coming to it to the target host:port (from environment variables), 
+- it removes the Authorization header when proxy and replaces it with a freshly generated access JWT token from generated keys. 
+- It should use user module to resolve the user and it should process the make me root token if it's set and not remove the cookie
+- Reuse the code as much as you can, start server from the bro-server code, do not create unneeded entities or keys
