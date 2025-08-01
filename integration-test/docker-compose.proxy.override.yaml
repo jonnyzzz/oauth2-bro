@@ -1,0 +1,27 @@
+## this docker compose file is applied on top of docker-compose.yaml
+## of IDE Services demo package -- tbe-demo, which is extracted
+## and prepared by the script.
+services:
+  mock-proxy:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+
+    image: !reset null
+    environment:
+      - OAUTH2_BRO_BIND_PORT=8077
+      - OAUTH2_BRO_BIND_HOST=0.0.0.0
+      - OAUTH2_BRO_MAKE_ROOT_SECRET=jonnyzzz
+      - OAUTH2_BRO_PROXY_TARGET=http://tbe-server:8443
+    ports:
+      - 8443:8077
+    depends_on:
+      - tbe-server
+
+  tbe-server:
+    ports: !reset null
+    volumes:
+      - ../ide-services-patch.proxy.yaml:/tmp-bro/ide-services-patch.proxy.yaml
+    environment:
+      ## we have to copy the original value and patch to include the second config file
+      - JAVA_TOOL_OPTIONS=-Dspring.config.additional-location=file:/tmp/application-demo.yml,file:/tmp-bro/ide-services-patch.proxy.yaml -Dtbe.deployment.import-machine-config-path=/tmp/your-company-machine-config.json
