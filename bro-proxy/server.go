@@ -56,15 +56,14 @@ func (s *server) setupRoutes(mux *http.ServeMux) {
 	}
 
 	serveHTTP := s.setupReverseProxy(target)
-	mux.HandleFunc("/", wrapResponse(serveHTTP))
+	mux.Handle("/", serveHTTP)
 }
 
-func (s *server) setupReverseProxy(target *url.URL) func(rw http.ResponseWriter, req *http.Request) {
+func (s *server) setupReverseProxy(target *url.URL) http.Handler {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	oldDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		oldDirector(req)
-		bsc.WrapResponseHeaders(req.Header, s.version)
 		req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 
 		// Remove the original Authorization header
@@ -81,5 +80,5 @@ func (s *server) setupReverseProxy(target *url.URL) func(rw http.ResponseWriter,
 		}
 	}
 
-	return proxy.ServeHTTP
+	return proxy
 }
