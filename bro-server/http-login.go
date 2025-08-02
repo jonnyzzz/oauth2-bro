@@ -45,15 +45,8 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, expiredCookie)
 
 		// Cookie exists, use it to create a custom user info
-		keymanagerUserInfo, err := s.refreshKeys.ValidateInnerToken(cookie.Value)
-		if err == nil && keymanagerUserInfo != nil {
-			// Convert keymanager UserInfo to user module UserInfo
-			userInfo := &user.UserInfo{
-				Sid:       keymanagerUserInfo.Sid,
-				Sub:       keymanagerUserInfo.Sub,
-				UserName:  keymanagerUserInfo.UserName,
-				UserEmail: keymanagerUserInfo.UserEmail,
-			}
+		userInfo, err := s.refreshKeys.ValidateInnerToken(cookie.Value)
+		if err == nil && userInfo != nil {
 			// Successfully validated the cookie, proceed with login
 			s.handleNormalLogin(w, r, queryParams, userInfo)
 			return
