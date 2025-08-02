@@ -1,0 +1,35 @@
+# nginx.conf - Simple JWT proxy configuration
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    # Lua configuration
+    lua_package_path "/etc/nginx/lua/?.lua;;";
+    
+    # Upstream backend
+    upstream backend {
+        server {{BACKEND_HOST}}:{{BACKEND_PORT}};
+    }
+    
+    # Main server
+    server {
+        listen 80;
+        server_name _;
+        
+        # JWKS endpoint - serves static file
+        location /.well-known/jwks.json {
+            alias /etc/nginx/jwks.json;
+            add_header Content-Type application/json;
+            add_header Cache-Control "public, max-age=3600";
+        }
+        
+        # Health check
+        location /health {
+            return 200 "OK\n";
+            add_header Content-Type text/plain;
+        }
+        
+        # Main proxy with JWT injection
+        location / {

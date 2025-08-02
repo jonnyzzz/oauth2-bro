@@ -1,0 +1,52 @@
+-- simple_jwt_generator.lua
+-- Single file JWT generator for Nginx with minimal dependencies
+
+local jwt = require "resty.jwt"
+local cjson = require "cjson"
+
+-- Configuration - these will be replaced by the setup script
+local JWT_SECRET = "{{JWT_SECRET}}"
+local JWT_ALGORITHM = "{{JWT_ALGORITHM}}"
+local JWT_EXPIRY = {{JWT_EXPIRY}}
+local JWT_ISSUER = "{{JWT_ISSUER}}"
+local JWT_AUDIENCE = "{{JWT_AUDIENCE}}"
+local KEY_ID = "{{KEY_ID}}"
+
+-- Generate unique subject based on client IP and User-Agent
+local function generate_subject()
+    local client_ip = ngx.var.remote_addr
+    local user_agent = ngx.var.http_user_agent or ""
+    local unique_string = client_ip .. ":" .. user_agent
+    return ngx.md5(unique_string)
+end
+
+-- Create JWT payload
+local function create_payload()
+    local now = ngx.time()
+    local subject = generate_subject()
+    
+    return {
+        iss = JWT_ISSUER,
+        sub = subject,
+        aud = JWT_AUDIENCE,
+        exp = now + JWT_EXPIRY,
+        iat = now,
+        nbf = now,
+        jti = ngx.md5(subject .. now),
+        client_ip = ngx.var.remote_addr,
+        user_agent = ngx.var.http_user_agent
+    }
+end
+
+-- Generate JWT token
+local function generate_jwt()
+    local payload = create_payload()
+    
+    local jwt_token = jwt:sign(JWT_SECRET, {
+        header = {
+            typ = "JWT",
+            alg = JWT_ALGORITHM,
+            kid = KEY_ID
+        },
+        payload = payload
+    })

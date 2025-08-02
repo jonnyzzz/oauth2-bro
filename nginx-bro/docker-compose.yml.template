@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  jwt-proxy:
+    image: openresty/openresty:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf
+      - ./lua:/etc/nginx/lua
+      - ./jwks.json:/etc/nginx/jwks.json
+    depends_on:
+      - backend-app
+    restart: unless-stopped
+
+  # Replace this with your actual backend application
+  backend-app:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    command: >
+      sh -c "echo 'server { 
+        listen 80; 
+        location / { return 200 \"Backend Response: \$$request_uri\\nHeaders: \$$http_authorization\"; add_header Content-Type text/plain; } 
+        location /health { return 200 \"OK\"; add_header Content-Type text/plain; } 
