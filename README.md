@@ -17,7 +17,7 @@ OAuth2-bro simplifies authentication by:
 
 Looking for practical integration options with JetBrains IDE Services, including no-login proxy mode and admin override? See Ide-Services-Recipes.md for detailed recipes, configuration snippets, and local demo scripts.
 
-- Recipes: ./Ide-Services-Recipes.md
+- Recipes: [JetBrains IDE Services](Ide-Services-Recipes.md)
 
 ## 🤝 Contributing
 
