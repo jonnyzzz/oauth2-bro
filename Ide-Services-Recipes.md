@@ -4,7 +4,7 @@ This document collects practical, field-tested ways to integrate JetBrains IDE S
 the brief scenarios into concrete recipes with when-to-use guidance, local demo commands, configuration
 snippets, and links to deeper specifications.
 
-If you’re new to `OAuth2-bro`, start with the project overview in README.md. For implementation details and rationale, see `Spec.md`.
+If you’re new to `OAuth2-bro`, start with the project overview in README.md. For implementation details and rationale, see [Spec.md](Spec.md).
 
 ## Recipe 1: Browser Flow (Implicit, IP-based)
 
@@ -30,13 +30,9 @@ tbe:
       - 'admin'
 ```
 
-Links
-- Spec: Authentication, tokens, endpoints: ./Spec.md#endpoints
-- IP-based auth concept: ./README.md#what-it-does and ./README.md#how-it-works
-
 Notes
 - Ensure `OAUTH2_BRO_ALLOWED_IP_MASKS` is configured for your network ranges.
-- Use HTTPS/ingress TLS in production, better via external reverse-proxy or ingress
+- Use HTTPS/ingress TLS in production, better via an external reverse-proxy or ingress
 
 ## Recipe 2: Sidecar Proxy Mode (No-login Authentication)
 
@@ -54,10 +50,8 @@ Important notes
 - This approach aligns with JetBrains docs: https://www.jetbrains.com/help/ide-services/no-login-authentication.html
 
 Implementation details and links
-- Enable with env var: OAUTH2_BRO_PROXY_TARGET (see README.md#proxy-mode-configuration)
-- JWKS in proxy mode is exposed at /oauth2-bro/jwks (see Spec.md#proxy-mode)
-- Spec section: ./Spec.md#proxy-mode
-- README proxy overview: ./README.md#proxy-mode-configuration
+- Enable with env var: `OAUTH2_BRO_PROXY_TARGET` (see README.md#proxy-mode-configuration)
+- JWKS in proxy mode is exposed at `/oauth2-bro/jwks` (see Spec.md#proxy-mode)
 
 # User Authentication Rules
 See the `ResolveUserInfoFromRequest` function under `user/user-manager.go` to understand the current approach better.
@@ -73,24 +67,20 @@ Description
 - OAuth2-bro supports a temporary admin override cookie set via a special URL.
 
 How to use
-- Configure OAUTH2_BRO_MAKE_ROOT_SECRET in the server environment.
+- Configure `OAUTH2_BRO_MAKE_ROOT_SECRET` in the server environment.
 - Open a URL like:
-  http://localhost:8077/login?cookieSecret=your-secret&sid=admin&email=admin@company.com
+  `http://localhost:8077/login?cookieSecret=your-secret&sid=admin&email=admin@company.com`
 - Proceed with the usual login flow in the same browser; OAuth2-bro will authenticate you as the specified user and then remove the cookie.
 
 Parameters
-- cookieSecret: must match OAUTH2_BRO_MAKE_ROOT_SECRET
+- cookieSecret: must match `OAUTH2_BRO_MAKE_ROOT_SECRET`
 - sid or sub: subject ID
 - name: optional user name
 - email: optional email address
 
 Security notes
-- Use HTTPS in production; keep OAUTH2_BRO_MAKE_ROOT_SECRET secure.
+- Use HTTPS in production; keep `OAUTH2_BRO_MAKE_ROOT_SECRET` secure.
 - Cookie is HttpOnly and scoped to /login; removed after login.
-
-Links
-- Detailed spec: ./Spec.md#make-me-root
-- Original README section was moved here.
 
 ## When to choose which recipe
 - Prefer Recipe 1 (Browser Flow) when your users can follow a standard OAuth2 redirect with implicit IP-based auth.
@@ -100,4 +90,4 @@ Links
 ## Contributing and Extensions
 - We welcome contributions and customer-driven tweaks; small fixes can be integrated upstream.
 - For complex deployments, consider engaging Professional Services.
-- See Spec.md for potential future extensions: Explicit Tokens, multi-node key distribution, and chained auth.
+- See [Spec.md](Spec.md) for potential future extensions: Explicit Tokens, multi-node key distribution, and chained auth.
