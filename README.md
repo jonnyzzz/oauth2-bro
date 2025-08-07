@@ -13,7 +13,38 @@ OAuth2-bro simplifies authentication by:
 - Providing standard OAuth2 flows for seamless integration
 - Supporting stateless, multi-node deployments
 
-## 🚀 Quick Start
+## 🔧 JetBrains IDE Services Recipes and Integration
+
+Looking for practical integration options with JetBrains IDE Services, including no-login proxy mode and admin override? See Ide-Services-Recipes.md for detailed recipes, configuration snippets, and local demo scripts.
+
+- Recipes: ./Ide-Services-Recipes.md
+
+## 🤝 Contributing
+
+We welcome contributions! For major changes:
+1. Open an issue to discuss your idea
+2. Fork the repository
+3. Create a pull request
+
+Let's build better authentication together!
+
+## 📄 License
+
+Apache 2.0 - see [LICENSE](LICENSE) file
+
+## 🙏 Background
+
+OAuth2-bro was created by [Eugene Petrenko](https://jonnyzzz.com) to support customer
+requests at [JetBrains IDE Services](https://jetbrains.com/ide-services), focusing on
+management, security, and governance of AI and Developer Tools at scale. The name is
+inspired by Orwell's "1984" - but instead of watching you, this Big Brother just checks
+your IP address!
+
+## User Authentication Rules
+See the `ResolveUserInfoFromRequest` function under `user/user-manager.go` to understand the current approach better.
+Fork this repository to change the logic or contribute to the original one. We are eager to learn about your needs.
+
+# 🚀 Quick Start
 
 ```bash
 # Using Docker
@@ -139,45 +170,6 @@ OAuth2-bro is stateless when configured with external keys. For high availabilit
 2. Deploy multiple nodes with the same keys
 3. Use any load balancer (no session affinity needed)
 
-## 👑 Admin Access ("Make me Root")
-
-Need to authenticate as a specific user instead of using IP-based auth? Use the admin override:
-
-```
-http://localhost:8077/login?cookieSecret=your-secret&sid=admin&email=admin@company.com
-```
-
-Do your usual login flow in the same browser.
-This sets a secure cookie that authenticates you as the specified user for subsequent OAuth2 flows.
-
-**Parameters:**
-- `cookieSecret`: Must match `OAUTH2_BRO_MAKE_ROOT_SECRET`
-- `sid` or `sub`: Subject ID for the user
-- `name`: Name of the user
-- `email`: Email address for the user
-
-**Security notes:**
-- Keep your `OAUTH2_BRO_MAKE_ROOT_SECRET` secure
-- Use HTTPS in production
-- Cookie is HttpOnly and limited to the /login path, removed after login
-
-## 🔧 JetBrains IDE Services Integration
-
-OAuth2-bro integrates seamlessly with JetBrains IDE Services. Add this to your 
-IDE Services configuration:
-
-```yaml
-tbe:
-  auth:
-    login-url: 'http://oauth2-bro:8077/login'
-    token-url: 'http://oauth2-bro:8077/token'
-    jwt-certs-url: 'http://oauth2-bro:8077/jwks'
-    root-admin-emails:
-      - 'admin@company.com'
-    root-admin-subjects:
-      - 'admin'
-```
-
 ## 🏗️ How it Works
 
 1. **Client requests access** - Application redirects to OAuth2-bro's `/authorize` endpoint
@@ -203,25 +195,3 @@ go build .
 # Run with custom logic
 ./oauth2-bro
 ```
-
-## 🤝 Contributing
-
-We welcome contributions! For major changes:
-1. Open an issue to discuss your idea
-2. Fork the repository
-3. Create a pull request
-
-Let's build better authentication together!
-
-## 📄 License
-
-Apache 2.0 - see [LICENSE](LICENSE) file
-
-## 🙏 Background
-
-OAuth2-bro was created by [Eugene Petrenko](https://jonnyzzz.com) to support customer
-requests at [JetBrains IDE Services](https://jetbrains.com/ide-services), focusing on 
-management, security, and governance of AI and Developer Tools at scale. The name is 
-inspired by Orwell's "1984" - but instead of watching you, this Big Brother just checks 
-your IP address!
-
