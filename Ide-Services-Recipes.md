@@ -60,23 +60,23 @@ Fork this repository to change the logic or contribute to the original one. We a
 
 # Admin Override (“Make me Root”)
 
-Currently only supported for Recipe 1.
-
 Description
 - Sometimes you need to authenticate as a specific admin user (e.g., for IDE Services Admin Console) instead of IP-based identity.
 - OAuth2-bro supports a temporary admin override cookie set via a special URL.
 
 How to use
 - Configure `OAUTH2_BRO_MAKE_ROOT_SECRET` in the server environment.
-- Open a URL like:
+- Open a URL for Recipe 1 (Browser Flow)
   `http://localhost:8077/login?cookieSecret=your-secret&sid=admin&email=admin@company.com`
-- Proceed with the usual login flow in the same browser; OAuth2-bro will authenticate you as the specified user and then remove the cookie.
+- Open a URL for Recipe 2 (Sidecar Proxy)
+  `http://localhost:8443/oauth2-bro/login?cookieSecret=your-secret&sid=admin&email=admin@company.com`
+- Proceed with the usual login flow in the same browser
 
 Parameters
-- cookieSecret: must match `OAUTH2_BRO_MAKE_ROOT_SECRET`
-- sid or sub: subject ID
-- name: optional user name
-- email: optional email address
+- `cookieSecret`: must match `OAUTH2_BRO_MAKE_ROOT_SECRET`
+- `sid` or `sub`: subject ID
+- `name`: optional user name
+- `email`: optional email address
 
 Security notes
 - Use HTTPS in production; keep `OAUTH2_BRO_MAKE_ROOT_SECRET` secure.
