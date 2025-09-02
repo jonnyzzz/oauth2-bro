@@ -233,7 +233,7 @@ way to many services and tools which can help with that.
 `oauth2-bro` tool. TBD~~ (not implemented in current version - use external tools for key generation)
 
 
-Make me Root
+Make me Root (Bro mode)
 ------
 
 In addition to the idea of authentication to proxy to the next service, 
@@ -249,8 +249,7 @@ browser as admin.
 Implementation idea: 
 We add additional handler in the `/login` endpoint to get `cookieSecret`, `sid`, `sub`, `name`, and `email` claims,
 the implementation of that handle will set the cookie with a refresh-token inside to map to that user. 
-The cookie lifetime should be controlled as an additional parameter or be equal to the refresh token lifetime.
-There has to be only selected clientId used for that process, it has to be explicit, even if no other IDs are set.
+The cookie is one-time, and it's removed after the successful login. 
 
 Once the ordinary `/login` handler is executed as a part of usual login flow, we must check for the 
 cookie, and if it's set, use the data to proceed. The cookie has to be removed after login. 
@@ -264,9 +263,28 @@ This will set a cookie in your browser that will be used during the next regular
 login flow to authenticate you as the specified user. After successful login, the 
 cookie will be removed.
 
+Security and multi-node note: for this feature to work reliably in a multi-node setup, all nodes that may process the login must use the same signing keys for refresh tokens so that the cookie (which contains a refresh token) can be validated by every node. Ensure that the Refresh keys are shared/synchronized across nodes.
+
 It might be better to supply a signed URL similar to AWS's approach, where cookieSecret
 is never the original secret, but a temporary token. TBD.
 
+Make me Root (Proxy mode)
+------
+
+In proxy mode, OAuth2-bro supports a Make me Root capability that elevates all requests coming through the proxy as a specific user. This is implemented via a cookie set by a dedicated endpoint.
+
+- Endpoint to set cookie: POST /oauth2-bro/make-root with query parameters cookieSecret, sid, sub, name, email
+- Endpoint to clear cookie: POST /oauth2-bro/unmake-root
+- The proxy checks every incoming request for the cookie and, if present and valid, forwards the request to the target with the Authorization: Bearer <token-from-cookie> header. If the cookie is absent, the proxy generates a token using the configured user resolver for each request.
+
+Security and multi-node note: for this feature to work reliably in a multi-node setup, all nodes that may process requests must use the same signing keys so that the JWT stored in the cookie (and used by the proxy) can be validated by every node. Ensure that the Token keys set for the proxy are shared/synchronized across nodes.
+
+Example URL to set the cookie:
+```
+http://localhost:8085/oauth2-bro/make-root?cookieSecret=your-secret&sid=toolbox.admin
+```
+
+This will set a cookie in your browser that will be used by the proxy to authorize all subsequent proxied requests as the specified user, until cleared via /oauth2-bro/unmake-root or cookie expiration.
 
 Proxy Mode
 ---------

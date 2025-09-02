@@ -4,7 +4,6 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	"github.com/rakutentech/jwk-go/jwk"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +11,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/rakutentech/jwk-go/jwk"
 
 	"github.com/golang-jwt/jwt/v5"
 	"jonnyzzz.com/oauth2-bro/client"
@@ -450,7 +451,8 @@ func TestMakeRootFunctionality(t *testing.T) {
 
 			// Check that the response is a redirect
 			if resp.StatusCode != http.StatusFound {
-				t.Errorf("Expected status code %d, got %d", http.StatusFound, resp.StatusCode)
+				body, _ := io.ReadAll(resp.Body)
+				t.Errorf("Expected status code %d, got %d, %s", http.StatusFound, resp.StatusCode, string(body))
 			}
 
 			// Get the redirect URL
@@ -622,8 +624,8 @@ func TestMakeRootFunctionality(t *testing.T) {
 		defer resp.Body.Close()
 
 		// Check that the request was redirected (normal login flow)
-		if resp.StatusCode != http.StatusFound {
-			t.Errorf("Expected status code %d, got %d", http.StatusFound, resp.StatusCode)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, resp.StatusCode)
 		}
 	})
 
@@ -650,7 +652,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to read response body: %v", err)
 		}
-		if !strings.Contains(string(body), "At least one of sid, sub, name, or email must be provided") {
+		if !strings.Contains(string(body), "one of sid, sub, name, or email must be provided") {
 			t.Errorf("Expected error message about missing user info, got: %s", string(body))
 		}
 	})

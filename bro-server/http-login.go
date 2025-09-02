@@ -1,31 +1,26 @@
 package broserver
 
 import (
-	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
+
+	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
 
 	"jonnyzzz.com/oauth2-bro/user"
 )
 
-// getMakeRootSecret returns the secret used to validate the cookieSecret parameter
-func getMakeRootSecret() string {
-	return os.Getenv("OAUTH2_BRO_MAKE_ROOT_SECRET")
-}
-
 func (s *server) login(w http.ResponseWriter, r *http.Request) {
-	// Parse query parameters
-	queryParams := r.URL.Query()
+	userInfo, err := bsc.ParseMakeRootRequest(r)
 
-	// Check for cookieSecret parameter to decide which login flow to use
-	cookieSecret := queryParams.Get("cookieSecret")
-	expectedSecret := getMakeRootSecret()
+	if err != nil {
+		bsc.BadRequest(w, r, "Failed to sign refresh token: "+err.Error())
+		return
+	}
 
 	// Only proceed with Make me Root if cookieSecret is provided and matches the expected value
-	if len(cookieSecret) > 0 && len(expectedSecret) > 0 && cookieSecret == expectedSecret {
-		s.handleMakeRoot(w, r, queryParams)
+	if userInfo != nil {
+		s.handleMakeRoot(w, r, userInfo)
 		return
 	}
 
@@ -48,75 +43,17 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		userInfo, err := s.refreshKeys.ValidateInnerToken(cookie.Value)
 		if err == nil && userInfo != nil {
 			// Successfully validated the cookie, proceed with login
-			s.handleNormalLogin(w, r, queryParams, userInfo)
+			s.handleNormalLogin(w, r, userInfo)
 			return
 		}
 	}
 
 	// Normal login flow
-	s.handleNormalLogin(w, r, queryParams, nil)
-}
-
-// parseUserInfoFromQueryParams extracts user information from query parameters
-func (s *server) parseUserInfoFromQueryParams(queryParams url.Values) *user.UserInfo {
-	// Create a UserInfo object from the query parameters
-	sid := queryParams.Get("sid")
-	sub := queryParams.Get("sub")
-	name := queryParams.Get("name")
-	email := queryParams.Get("email")
-
-	// Apply the value copying rules
-	if len(sid) > 0 && len(sub) == 0 {
-		sub = sid
-	} else if len(sub) > 0 && len(sid) == 0 {
-		sid = sub
-	}
-
-	if len(name) > 0 {
-		if len(sid) == 0 {
-			sid = name
-		}
-		if len(sub) == 0 {
-			sub = name
-		}
-	}
-
-	if len(email) > 0 {
-		if len(sid) == 0 {
-			sid = email
-		}
-		if len(sub) == 0 {
-			sub = email
-		}
-		if len(name) == 0 {
-			name = email
-		}
-	}
-
-	// Ensure we have at least one value
-	if len(sid) == 0 && len(sub) == 0 && len(name) == 0 && len(email) == 0 {
-		return nil
-	}
-
-	// Create the UserInfo object
-	return &user.UserInfo{
-		Sid:       sid,
-		Sub:       sub,
-		UserName:  name,
-		UserEmail: email,
-	}
+	s.handleNormalLogin(w, r, nil)
 }
 
 // handleMakeRoot handles the "Make me Root" functionality
-func (s *server) handleMakeRoot(w http.ResponseWriter, r *http.Request, queryParams url.Values) {
-
-	// Parse user info from query parameters
-	userInfo := s.parseUserInfoFromQueryParams(queryParams)
-	if userInfo == nil {
-		bsc.BadRequest(w, r, "At least one of sid, sub, name, or email must be provided")
-		return
-	}
-
+func (s *server) handleMakeRoot(w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
 	// Generate a refresh token
 	refreshToken, err := s.refreshKeys.SignInnerToken(userInfo)
 	if err != nil {
@@ -143,7 +80,9 @@ func (s *server) handleMakeRoot(w http.ResponseWriter, r *http.Request, queryPar
 }
 
 // handleNormalLogin handles the normal login flow
-func (s *server) handleNormalLogin(w http.ResponseWriter, r *http.Request, queryParams url.Values, customUserInfo *user.UserInfo) {
+func (s *server) handleNormalLogin(w http.ResponseWriter, r *http.Request, customUserInfo *user.UserInfo) {
+	queryParams := r.URL.Query()
+
 	// Extract the parameters from your example
 	responseType := queryParams.Get("response_type") // "code"
 	if responseType != "code" {

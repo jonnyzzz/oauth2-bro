@@ -1,14 +1,15 @@
 package bro_proxy
 
 import (
-	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
-	"jonnyzzz.com/oauth2-bro/client"
-	"jonnyzzz.com/oauth2-bro/keymanager"
-	"jonnyzzz.com/oauth2-bro/user"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+
+	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
+	"jonnyzzz.com/oauth2-bro/client"
+	"jonnyzzz.com/oauth2-bro/keymanager"
+	"jonnyzzz.com/oauth2-bro/user"
 )
 
 // ServerConfig holds the configuration for the server
@@ -28,6 +29,10 @@ type server struct {
 	targetUrl          string
 }
 
+const (
+	rootCookieName = "oauth2-bro-make-me-root"
+)
+
 func newServer(config ServerConfig) *server {
 	return &server{
 		tokenKeys:    config.TokenKeys,
@@ -46,6 +51,8 @@ func SetupServer(config ServerConfig, mux *http.ServeMux) {
 func (s *server) setupRoutes(mux *http.ServeMux) {
 	wrapResponse := bsc.WrapResponseFactory(s.version)
 
+	mux.HandleFunc("/oauth2-bro/unmake-root", wrapResponse(s.handleUnMakeRoot))
+	mux.HandleFunc("/oauth2-bro/make-root", wrapResponse(s.handleMakeRoot))
 	mux.HandleFunc("/oauth2-bro/health", wrapResponse(bsc.HealthHandler))
 	mux.HandleFunc("/oauth2-bro/jwks", wrapResponse(bsc.JwksHandler(s.tokenKeys.ToBroKeys())))
 
@@ -69,14 +76,22 @@ func (s *server) setupReverseProxy(target *url.URL) http.Handler {
 		// Remove the original Authorization header
 		req.Header.Del("Authorization")
 
+		tokenString := s.parseRootMeCookie(req)
+		if tokenString != "" {
+			req.Header.Set("Authorization", "Bearer "+tokenString)
+			log.Printf("Using make-me-root JWT token.\n")
+			return
+		}
+
 		userInfo := s.userResolver.ResolveUserInfoFromRequest(req)
 		if userInfo != nil {
 			tokenString, err := s.tokenKeys.RenderJwtAccessToken(userInfo)
 			if err != nil {
 				log.Printf("Failed to render JWT token. %v\n", err)
-			} else {
-				req.Header.Set("Authorization", "Bearer "+tokenString)
+				return
 			}
+
+			req.Header.Set("Authorization", "Bearer "+tokenString)
 		}
 	}
 

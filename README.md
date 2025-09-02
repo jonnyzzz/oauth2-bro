@@ -130,6 +130,25 @@ When `OAUTH2_BRO_PROXY_TARGET` is set, OAuth2-bro runs in proxy mode, acting as 
 
 This allows services to receive authenticated requests without implementing OAuth2 themselves.
 
+
+#### Make me Root (bro mode)
+
+Standard bro mode also supports "Make me Root" for the interactive OAuth2 login flow:
+- Set cookie: call `/login?cookieSecret=...&sid=...&sub=...&name=...&email=...` (same parameters as proxy mode)
+- Behavior: This sets a one-time cookie. On the next regular login flow, the `oauth2-bro` consumes the cookie, authenticates as the specified user, and immediately clears the cookie.
+
+#### Make me Root (proxy mode)
+
+Proxy mode supports an admin override via a cookie-based "Make me Root" feature:
+- Set cookie: POST `/oauth2-bro/make-root?cookieSecret=...&sid=...&sub=...&name=...&email=...`
+- Clear cookie: POST `/oauth2-bro/unmake-root`
+- Behavior: For every proxied request, if the cookie is present and valid, the proxy sets `Authorization` header based on the provided credentials.
+
+The JWT token expiration time is affecting the cookie expiration time, adjust if needed.
+
+Important for multi-node setups: all proxy nodes must use the same token signing keys so that the JWT in the cookie can be validated by any node. Share/synchronize the Token keys across nodes. See Spec.md for details.
+
+
 ## 🔑 Key Generation
 
 For production deployments, generate RSA keys manually:
