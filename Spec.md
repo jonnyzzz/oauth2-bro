@@ -299,7 +299,7 @@ This will set a cookie in your browser that will be used by the proxy to authori
 Proxy Mode
 ---------
 
-It is possible to run OAuth2-bro in proxy mode, in that case, 
+It is possible to run OAuth2-bro in proxy mode, in that case,
 we implement the same login of user management, but implicitly
 with the following flow
 
@@ -310,7 +310,34 @@ client ---[request without Authorization]--> OAuth2-bro proxy --[added Authoriza
 This setup can be implemented as side-car container and in that case, there is
 no need to synchronize token keys, since we keep that container as close as possible
 to the actual application container. This works with the assumption that the application
-container is not sending the received Authentication header to any other external services. 
+container is not sending the received Authentication header to any other external services.
+
+### OAuth2 Endpoints in Proxy Mode
+
+In proxy mode, OAuth2-bro provides simplified OAuth2 endpoints to maintain compatibility with OAuth2 clients. These endpoints implement a lightweight OAuth2 authorization code flow:
+
+**`/oauth2-bro/login`** - OAuth2 authorization endpoint
+- Accepts standard OAuth2 parameters: `response_type`, `client_id`, `redirect_uri`, `state`
+- Only supports `response_type=code`
+- Authenticates user based on IP address (via userResolver)
+- Returns authorization code with proxy-specific prefix: `oauth2-bro-proxy-code-{sid}-{token}`
+- Redirects to `redirect_uri` with `code` and `state` parameters
+
+**`/oauth2-bro/token`** - OAuth2 token endpoint
+- Accepts form-encoded POST requests with `grant_type`, `code`, `redirect_uri`
+- Only supports `grant_type=authorization_code`
+- Returns JSON token response with proxy-prefixed tokens:
+  - `access_token`: `oauth2-bro-proxy-access-{sid}-{token}`
+  - `refresh_token`: `oauth2-bro-proxy-refresh-{sid}-{token}`
+  - `token_type`: `Bearer`
+  - `expires_in`: token expiration in seconds
+
+**Important Notes:**
+- These tokens are **not used for actual authorization** in proxy mode
+- The proxy intercepts all requests and replaces any Authorization header with a freshly generated JWT
+- The OAuth2 endpoints exist solely to satisfy OAuth2 client expectations
+- Token prefixes (`oauth2-bro-proxy-*`) clearly identify these as OAuth2-bro proxy tokens
+- This allows OAuth2 clients to complete their flow while the proxy handles actual authentication 
 
 
 ### Prompt:

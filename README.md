@@ -146,6 +146,13 @@ When `OAUTH2_BRO_PROXY_TARGET` is set, OAuth2-bro runs in proxy mode, acting as 
 - Removes any existing Authorization header
 - Adds a freshly generated JWT access token based on the client's IP address
 - Exposes a JWKS endpoint at `/oauth2-bro/jwks` for token validation
+- Provides OAuth2 compatibility endpoints (`/oauth2-bro/login` and `/oauth2-bro/token`) for OAuth2 clients
+
+**OAuth2 Client Compatibility:**
+Proxy mode includes simplified OAuth2 authorization endpoints that make OAuth2 clients happy by providing 
+the expected OAuth2 flow. The returned tokens (with `oauth2-bro-proxy-*` prefix) are not used for actual 
+authorization - the proxy replaces all Authorization headers with fresh JWTs. This allows OAuth2 clients 
+to complete their authentication flow while the proxy handles actual token injection.
 
 This allows services to receive authenticated requests without implementing OAuth2 themselves.
 

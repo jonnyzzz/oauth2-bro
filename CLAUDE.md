@@ -8,7 +8,7 @@ OAuth2-bro is an OAuth2/OpenID Connect server that authenticates users based on 
 
 The project supports two operational modes:
 - **Standard OAuth2 mode**: Provides standard OAuth2 endpoints (/login, /token, /jwks)
-- **Proxy mode**: Acts as a reverse proxy sidecar that automatically injects JWT tokens based on client IP
+- **Proxy mode**: Acts as a reverse proxy sidecar that automatically injects JWT tokens based on client IP, includes simplified OAuth2 endpoints for client compatibility
 
 ## Architecture
 
@@ -21,7 +21,7 @@ This is a Go workspace project with multiple independent modules using local pat
 - **client/** - Client credential validation
 - **keymanager/** - RSA key management and JWT token signing/validation
 - **bro-server/** - Standard OAuth2 server implementation (login flow, token endpoint)
-- **bro-proxy/** - Reverse proxy mode implementation
+- **bro-proxy/** - Reverse proxy mode implementation with OAuth2 compatibility endpoints
 - **bro-server-common/** - Shared HTTP handlers (health, JWKS, favicon, make-root)
 
 ### Key Components
@@ -29,7 +29,8 @@ This is a Go workspace project with multiple independent modules using local pat
 **Main Entry (oauth2-bro/main.go)**
 - Decides between standard OAuth2 mode or proxy mode based on `OAUTH2_BRO_PROXY_TARGET` env var
 - Standard mode creates: RefreshKeys, CodeKeys, TokenKeys
-- Proxy mode creates only: TokenKeys (simpler, no OAuth2 flow needed)
+- Proxy mode creates only: TokenKeys (simpler setup)
+- Proxy mode includes OAuth2 endpoints for client compatibility (returns proxy-prefixed tokens)
 
 **User Resolution (user/user-manager.go)**
 - `ResolveUserInfoFromRequest()` extracts client IP from various headers (X-Forwarded-For, X-Real-IP, etc.)
@@ -163,7 +164,7 @@ For stateless multi-node deployments:
 
 1. **User Authentication Logic**: The core IP-to-user logic is in `user/user-manager.go:ResolveUserInfoFromRequest()`. This is the primary customization point for authentication rules.
 
-2. **Proxy vs Standard Mode**: The main.go switches between modes. Proxy mode is simpler (no OAuth2 flow, just JWT injection), while standard mode implements full OAuth2 authorization code grant.
+2. **Proxy vs Standard Mode**: The main.go switches between modes. Proxy mode injects JWT tokens automatically and includes simplified OAuth2 endpoints (`/oauth2-bro/login` and `/oauth2-bro/token`) for client compatibility. These endpoints return proxy-prefixed tokens (e.g., `oauth2-bro-proxy-access-*`) that satisfy OAuth2 client expectations, but are not used for actual authorization (the proxy replaces all Authorization headers). Standard mode implements full OAuth2 authorization code grant.
 
 3. **Dual HTTP/HTTPS Operation**: OAuth2-bro can run HTTP and HTTPS simultaneously on different ports. This solves the common problem where backend services (like JetBrains IDE Services) struggle to connect to HTTPS OAuth2 providers:
    - HTTPS port (8443) for external clients (browsers, external tools)

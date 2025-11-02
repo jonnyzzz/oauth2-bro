@@ -92,7 +92,8 @@ Description
 - Run OAuth2-bro as a sidecar reverse-proxy in front of IDE Services container.
 - The proxy strips any incoming Authorization header and injects a fresh JWT based on client IP.
 - IDEs and Toolbox App do not perform interactive auth; the token is added transparently by the sidecar.
-- Ideal for “no-login” scenarios and controlled environments.
+- Ideal for "no-login" scenarios and controlled environments.
+- OAuth2 client compatibility: includes `/oauth2-bro/login` and `/oauth2-bro/token` endpoints for OAuth2 clients.
 
 How to try locally
 - Run the proxy demo: `integration-test/run-ide-services-proxy.sh`
@@ -101,9 +102,16 @@ Important notes
 - Admin Web UI currently needs a small fix to honor the injected token: https://youtrack.jetbrains.com/issue/IDES-9819/Admin-Web-UI-requires-login-ignoring-token
 - This approach aligns with JetBrains docs: https://www.jetbrains.com/help/ide-services/no-login-authentication.html
 
+OAuth2 Client Compatibility
+- Proxy mode now includes simplified OAuth2 endpoints to satisfy OAuth2 clients that expect a standard OAuth2 flow
+- Endpoints `/oauth2-bro/login` and `/oauth2-bro/token` return proxy-prefixed tokens (`oauth2-bro-proxy-*`)
+- These tokens are **not used for authorization** - the proxy replaces all Authorization headers with fresh JWTs
+- This ensures OAuth2 clients can complete their flow while the proxy handles actual authentication
+
 Implementation details and links
 - Enable with env var: `OAUTH2_BRO_PROXY_TARGET` (see README.md#proxy-mode-configuration)
 - JWKS in proxy mode is exposed at `/oauth2-bro/jwks` (see Spec.md#proxy-mode)
+- OAuth2 endpoints documented in Spec.md under "OAuth2 Endpoints in Proxy Mode"
 
 # User Authentication Rules
 See the `ResolveUserInfoFromRequest` function under `user/user-manager.go` to understand the current approach better.

@@ -73,8 +73,8 @@ func (s *server) setupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oauth2-bro/make-root", wrapResponse(s.handleMakeRoot))
 	mux.HandleFunc("/oauth2-bro/health", wrapResponse(bsc.HealthHandler))
 	mux.HandleFunc("/oauth2-bro/jwks", wrapResponse(bsc.JwksHandler(s.TokenKeys())))
-	mux.HandleFunc("/login", wrapResponse(s.login))
-	mux.HandleFunc("/token", wrapResponse(s.token))
+	mux.HandleFunc("/oauth2-bro/login", wrapResponse(s.login))
+	mux.HandleFunc("/oauth2-bro/token", wrapResponse(s.token))
 
 	// TargetUrl server URL
 	target, err := url.Parse(s.targetUrl)
