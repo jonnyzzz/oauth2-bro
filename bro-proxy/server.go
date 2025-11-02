@@ -96,6 +96,8 @@ func (s *server) setupReverseProxy(target *url.URL) http.Handler {
 		// Remove the original Authorization header
 		req.Header.Del("Authorization")
 
+		req.Header.Set("X-Bro", "OAuth2-bro "+s.version)
+
 		tokenString := s.parseRootMeCookie(req)
 		if tokenString != "" {
 			req.Header.Set("Authorization", "Bearer "+tokenString)
