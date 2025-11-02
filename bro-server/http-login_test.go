@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/rakutentech/jwk-go/jwk"
+	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
 
 	"github.com/golang-jwt/jwt/v5"
 	"jonnyzzz.com/oauth2-bro/client"
@@ -137,7 +138,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 				t.Fatalf("Failed to read response body: %v", err)
 			}
 
-			var tokenResponse TokenResponse
+			var tokenResponse bsc.TokenResponse
 			err = json.Unmarshal(body, &tokenResponse)
 			if err != nil {
 				t.Fatalf("Failed to parse token response: %v", err)
@@ -245,7 +246,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 					t.Fatalf("Failed to read refresh response body: %v", err)
 				}
 
-				var refreshTokenResponse TokenResponse
+				var refreshTokenResponse bsc.TokenResponse
 				err = json.Unmarshal(refreshBody, &refreshTokenResponse)
 				if err != nil {
 					t.Fatalf("Failed to parse refresh token response: %v", err)
@@ -520,7 +521,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 					t.Fatalf("Failed to read token response body: %v", err)
 				}
 
-				var tokenResponse TokenResponse
+				var tokenResponse bsc.TokenResponse
 				err = json.Unmarshal(tokenBody, &tokenResponse)
 				if err != nil {
 					t.Fatalf("Failed to parse token response: %v", err)
@@ -531,6 +532,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to fetch JWKS data: %v", err)
 				}
+				//goland:noinspection GoUnhandledErrorResult
 				defer jwksResp.Body.Close()
 
 				jwksBody, err := io.ReadAll(jwksResp.Body)
@@ -660,7 +662,9 @@ func TestMakeRootFunctionality(t *testing.T) {
 
 func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 	// Set up environment for testing
+	//goland:noinspection GoUnhandledErrorResult
 	os.Setenv("OAUTH2_BRO_CLIENT_CREDENTIALS", "tbe-server=bacd3019-c3b9-4b31-98d5-d3c410a1098e")
+	//goland:noinspection GoUnhandledErrorResult
 	defer os.Unsetenv("OAUTH2_BRO_CLIENT_CREDENTIALS")
 
 	// Create key manager for testing

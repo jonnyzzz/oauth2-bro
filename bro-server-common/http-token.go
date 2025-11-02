@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"jonnyzzz.com/oauth2-bro/client"
 	"jonnyzzz.com/oauth2-bro/keymanager"
 	"jonnyzzz.com/oauth2-bro/user"
 )
@@ -23,12 +24,91 @@ type TokenResponse struct {
 	TokenType    string `json:"token_type"`
 }
 
-type HandleTokenResponse interface {
-	TokenKeys() keymanager.BroAccessKeys
+type HandleToken interface {
+	ClientInfoProvider() client.ClientInfoProvider
 	RefreshKeys() keymanager.BroInnerKeys
+	CodeKeys() keymanager.BroInnerKeys
+	TokenKeys() keymanager.BroAccessKeys
 }
 
-func RenderTokenResponse(s HandleTokenResponse, w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
+func Token(s HandleToken, w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	if r.Method != "POST" {
+		BadRequest(w, r, "Only POST method is supported")
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		BadRequest(w, r, "Failed to parse form parameters "+err.Error())
+		return
+	}
+
+	clientId := r.Form.Get("client_id")
+	clientSecret := r.Form.Get("client_secret")
+	if len(clientId) == 0 || len(clientSecret) == 0 {
+		BadRequest(w, r, "client_id and client_secret parameters are required")
+		return
+	}
+
+	if !s.ClientInfoProvider().IsClientAllowed(clientId, clientSecret) {
+		BadRequest(w, r, "client_id and client_secret parameters are not allowed")
+		return
+	}
+
+	grantType := r.Form.Get("grant_type")
+
+	if grantType == "refresh_token" {
+		refreshTokenString := r.Form.Get("refresh_token")
+
+		keymanagerUserInfo, err := s.RefreshKeys().ValidateInnerToken(refreshTokenString)
+		if err != nil {
+			BadRequest(w, r, "Failed to validate refresh token "+err.Error())
+			return
+		}
+
+		// Convert keymanager UserInfo to user module UserInfo
+		userInfo := &user.UserInfo{
+			Sid:       keymanagerUserInfo.Sid,
+			Sub:       keymanagerUserInfo.Sub,
+			UserName:  keymanagerUserInfo.UserName,
+			UserEmail: keymanagerUserInfo.UserEmail,
+		}
+
+		RenderTokenResponse(s, w, r, userInfo)
+		return
+	}
+
+	if grantType == "authorization_code" {
+		code := r.Form.Get("code")
+		if len(code) == 0 {
+			BadRequest(w, r, "code parameter is required")
+			return
+		}
+
+		keymanagerUserInfo, err := s.CodeKeys().ValidateInnerToken(code)
+		if err != nil {
+			BadRequest(w, r, "Failed to validate code token "+err.Error())
+			return
+		}
+
+		// Convert keymanager UserInfo to user module UserInfo
+		userInfo := &user.UserInfo{
+			Sid:       keymanagerUserInfo.Sid,
+			Sub:       keymanagerUserInfo.Sub,
+			UserName:  keymanagerUserInfo.UserName,
+			UserEmail: keymanagerUserInfo.UserEmail,
+		}
+
+		RenderTokenResponse(s, w, r, userInfo)
+		return
+	}
+
+	log.Printf("token request %s %s %s \n\n", r.Method, r.URL.String(), r.Form.Encode())
+	w.WriteHeader(500)
+}
+
+func RenderTokenResponse(s HandleToken, w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
 	//TODO: remember visited code to reject it next time
 	tokenString, err := s.TokenKeys().RenderJwtAccessToken(userInfo)
 

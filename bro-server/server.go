@@ -38,6 +38,14 @@ func (s *server) RefreshKeys() keymanager.BroInnerKeys {
 	return s.refreshKeys
 }
 
+func (s *server) ClientInfoProvider() client.ClientInfoProvider {
+	return s.clientInfoProvider
+}
+
+func (s *server) CodeKeys() keymanager.BroInnerKeys {
+	return s.codeKeys
+}
+
 func (s *server) GetClientInfoProvider() client.ClientInfoProvider {
 	return s.clientInfoProvider
 }
