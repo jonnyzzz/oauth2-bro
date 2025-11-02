@@ -5,4 +5,9 @@ tbe:
       - 'toolbox.admin@example.com'
     root-admin-subjects:
       - '123'
+    # normally we do not need these parameters, but some clients
+    # may still need to authenticate against the proxy, let it be possible
+    # also workarounds https://youtrack.jetbrains.com/issue/IDES-9819/Admin-Web-UI-requires-login-ignoring-token
+    login-url: 'http://localhost:8443/oauth2-bro/login'
+    token-url: 'http://mock-proxy:8077/oauth2-bro/token'
 
