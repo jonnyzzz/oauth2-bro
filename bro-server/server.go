@@ -12,9 +12,7 @@ import (
 
 // ServerConfig holds the configuration for the server
 type ServerConfig struct {
-	RefreshKeys        keymanager.BroInnerKeys
-	CodeKeys           keymanager.BroInnerKeys
-	TokenKeys          keymanager.BroAccessKeys
+	KeyManager         keymanager.KeyManager
 	UserResolver       user.UserResolver
 	ClientInfoProvider client.ClientInfoProvider
 	Version            string
@@ -22,28 +20,26 @@ type ServerConfig struct {
 
 // server holds all the server state and handlers
 type server struct {
-	refreshKeys        keymanager.BroInnerKeys
-	codeKeys           keymanager.BroInnerKeys
-	tokenKeys          keymanager.BroAccessKeys
+	keyManager         keymanager.KeyManager
 	userResolver       user.UserResolver
 	clientInfoProvider client.ClientInfoProvider
 	version            string
 }
 
 func (s *server) TokenKeys() keymanager.BroAccessKeys {
-	return s.tokenKeys
+	return s.keyManager.TokenKeys
 }
 
 func (s *server) RefreshKeys() keymanager.BroInnerKeys {
-	return s.refreshKeys
+	return s.keyManager.RefreshKeys
+}
+
+func (s *server) CodeKeys() keymanager.BroInnerKeys {
+	return s.keyManager.CodeKeys
 }
 
 func (s *server) ClientInfoProvider() client.ClientInfoProvider {
 	return s.clientInfoProvider
-}
-
-func (s *server) CodeKeys() keymanager.BroInnerKeys {
-	return s.codeKeys
 }
 
 const (
@@ -52,9 +48,7 @@ const (
 
 func newServer(config ServerConfig) *server {
 	return &server{
-		refreshKeys:        config.RefreshKeys,
-		codeKeys:           config.CodeKeys,
-		tokenKeys:          config.TokenKeys,
+		keyManager:         config.KeyManager,
 		userResolver:       config.UserResolver,
 		clientInfoProvider: config.ClientInfoProvider,
 		version:            config.Version,
@@ -73,7 +67,7 @@ func (s *server) setupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/", wrapResponse(s.home))
 	mux.HandleFunc("/favicon.ico", wrapResponse(bsc.FaviconHandler))
 	mux.HandleFunc("/health", wrapResponse(bsc.HealthHandler))
-	mux.HandleFunc("/jwks", wrapResponse(bsc.JwksHandler(s.tokenKeys.ToBroKeys())))
+	mux.HandleFunc("/jwks", wrapResponse(bsc.JwksHandler(s.TokenKeys())))
 	mux.HandleFunc("/login", wrapResponse(s.login))
 	mux.HandleFunc("/token", wrapResponse(s.token))
 }

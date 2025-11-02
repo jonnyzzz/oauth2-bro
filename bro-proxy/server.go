@@ -15,7 +15,7 @@ import (
 // ServerConfig holds the configuration for the server
 type ServerConfig struct {
 	ClientInfoProvider client.ClientInfoProvider
-	TokenKeys          keymanager.BroAccessKeys
+	KeyManager         keymanager.KeyManager
 	UserResolver       user.UserResolver
 	Version            string
 	TargetUrl          string
@@ -23,8 +23,7 @@ type ServerConfig struct {
 
 // server holds all the server state and handlers
 type server struct {
-	tokenKeys          keymanager.BroAccessKeys
-	innerKeys          keymanager.BroInnerKeys
+	keyManager         keymanager.KeyManager
 	userResolver       user.UserResolver
 	clientInfoProvider client.ClientInfoProvider
 	version            string
@@ -36,15 +35,15 @@ func (s *server) ClientInfoProvider() client.ClientInfoProvider {
 }
 
 func (s *server) RefreshKeys() keymanager.BroInnerKeys {
-	return s.innerKeys
+	return s.keyManager.RefreshKeys
 }
 
 func (s *server) CodeKeys() keymanager.BroInnerKeys {
-	return s.innerKeys
+	return s.keyManager.CodeKeys
 }
 
 func (s *server) TokenKeys() keymanager.BroAccessKeys {
-	return s.tokenKeys
+	return s.keyManager.TokenKeys
 }
 
 const (
@@ -53,8 +52,7 @@ const (
 
 func newServer(config ServerConfig) *server {
 	return &server{
-		tokenKeys:          config.TokenKeys,
-		innerKeys:          keymanager.NewInnerKeys(config.TokenKeys.ToBroKeys(), config.Version), //TODO: we use same keys
+		keyManager:         config.KeyManager,
 		userResolver:       config.UserResolver,
 		version:            config.Version,
 		targetUrl:          config.TargetUrl,
@@ -74,7 +72,7 @@ func (s *server) setupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oauth2-bro/unmake-root", wrapResponse(s.handleUnMakeRoot))
 	mux.HandleFunc("/oauth2-bro/make-root", wrapResponse(s.handleMakeRoot))
 	mux.HandleFunc("/oauth2-bro/health", wrapResponse(bsc.HealthHandler))
-	mux.HandleFunc("/oauth2-bro/jwks", wrapResponse(bsc.JwksHandler(s.tokenKeys.ToBroKeys())))
+	mux.HandleFunc("/oauth2-bro/jwks", wrapResponse(bsc.JwksHandler(s.TokenKeys())))
 	mux.HandleFunc("/login", wrapResponse(s.login))
 	mux.HandleFunc("/token", wrapResponse(s.token))
 
@@ -107,7 +105,7 @@ func (s *server) setupReverseProxy(target *url.URL) http.Handler {
 
 		userInfo := s.userResolver.ResolveUserInfoFromRequest(req)
 		if userInfo != nil {
-			tokenString, err := s.tokenKeys.RenderJwtAccessToken(userInfo)
+			tokenString, err := s.TokenKeys().RenderJwtAccessToken(userInfo)
 			if err != nil {
 				log.Printf("Failed to render JWT token. %v\n", err)
 				return

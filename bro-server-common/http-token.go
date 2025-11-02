@@ -10,8 +10,8 @@ import (
 	"jonnyzzz.com/oauth2-bro/user"
 )
 
-//example  POST /token client_id=tbe-server&client_secret=bacd3019-c3b9-4b31-98d5-d3c410a1098e&
-//code=TODO%3A+it+is+not+the+code&
+//example  POST /token client_id=tbe-server&client_secret=bacsdf234e&
+//code=TODO%3A+iwwwt+is+!code&
 //grant_type=authorization_code
 //&redirect_uri=http%3A%2F%2Flocalhost%3A8443%2Fapi%2Flogin%2Fauthenticated
 
@@ -61,18 +61,10 @@ func Token(s HandleToken, w http.ResponseWriter, r *http.Request) {
 	if grantType == "refresh_token" {
 		refreshTokenString := r.Form.Get("refresh_token")
 
-		keymanagerUserInfo, err := s.RefreshKeys().ValidateInnerToken(refreshTokenString)
+		userInfo, err := s.RefreshKeys().ValidateInnerToken(refreshTokenString)
 		if err != nil {
 			BadRequest(w, r, "Failed to validate refresh token "+err.Error())
 			return
-		}
-
-		// Convert keymanager UserInfo to user module UserInfo
-		userInfo := &user.UserInfo{
-			Sid:       keymanagerUserInfo.Sid,
-			Sub:       keymanagerUserInfo.Sub,
-			UserName:  keymanagerUserInfo.UserName,
-			UserEmail: keymanagerUserInfo.UserEmail,
 		}
 
 		RenderTokenResponse(s, w, r, userInfo)
@@ -86,18 +78,10 @@ func Token(s HandleToken, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		keymanagerUserInfo, err := s.CodeKeys().ValidateInnerToken(code)
+		userInfo, err := s.CodeKeys().ValidateInnerToken(code)
 		if err != nil {
 			BadRequest(w, r, "Failed to validate code token "+err.Error())
 			return
-		}
-
-		// Convert keymanager UserInfo to user module UserInfo
-		userInfo := &user.UserInfo{
-			Sid:       keymanagerUserInfo.Sid,
-			Sub:       keymanagerUserInfo.Sub,
-			UserName:  keymanagerUserInfo.UserName,
-			UserEmail: keymanagerUserInfo.UserEmail,
 		}
 
 		RenderTokenResponse(s, w, r, userInfo)

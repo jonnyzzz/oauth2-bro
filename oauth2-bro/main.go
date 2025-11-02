@@ -75,6 +75,7 @@ func main() {
 
 	userManager := user.NewUserResolver()
 	clientManager := client.NewClientManager()
+	keyManager := keymanager.NewKeyManager()
 
 	mux := http.NewServeMux()
 
@@ -83,17 +84,14 @@ func main() {
 		fmt.Println("Running reverse-proxy with proxy target: ", proxyTarget)
 		browproxy.SetupServer(browproxy.ServerConfig{
 			ClientInfoProvider: clientManager,
-			TokenKeys:          keymanager.NewTokenKeys(),
+			KeyManager:         *keyManager,
 			UserResolver:       userManager,
 			Version:            version,
 			TargetUrl:          proxyTarget,
 		}, mux)
 	} else {
-		keyManager := keymanager.NewKeyManager()
 		browserver.SetupServer(browserver.ServerConfig{
-			RefreshKeys:        keyManager.RefreshKeys,
-			CodeKeys:           keyManager.CodeKeys,
-			TokenKeys:          keyManager.TokenKeys,
+			KeyManager:         *keyManager,
 			UserResolver:       userManager,
 			ClientInfoProvider: clientManager,
 			Version:            version,

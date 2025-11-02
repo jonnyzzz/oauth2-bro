@@ -14,7 +14,7 @@ func (s *server) parseRootMeCookie(r *http.Request) string {
 	}
 
 	var claims gojwt.RegisteredClaims
-	if _, err := s.tokenKeys.ToBroKeys().ValidateJwtToken(cookie.Value, &claims); err != nil {
+	if _, err := s.TokenKeys().ToBroKeys().ValidateJwtToken(cookie.Value, &claims); err != nil {
 		return ""
 	}
 
@@ -39,7 +39,7 @@ func (s *server) handleMakeRoot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate a refresh token
-	refreshToken, err := s.tokenKeys.RenderJwtAccessToken(userInfo)
+	refreshToken, err := s.TokenKeys().RenderJwtAccessToken(userInfo)
 	if err != nil {
 		bsc.BadRequest(w, r, "Failed to sign access token: "+err.Error())
 		return
@@ -50,7 +50,7 @@ func (s *server) handleMakeRoot(w http.ResponseWriter, r *http.Request) {
 		Name:     rootCookieName,
 		Value:    refreshToken,
 		Path:     "/",
-		MaxAge:   s.tokenKeys.ExpirationSeconds(), //TODO: SET IT LONGER,
+		MaxAge:   s.TokenKeys().ExpirationSeconds(), //TODO: SET IT LONGER,
 		HttpOnly: true,
 		Secure:   r.TLS != nil,
 		SameSite: http.SameSiteLaxMode,

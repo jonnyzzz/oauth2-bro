@@ -14,7 +14,7 @@ import (
 // stubUserResolver implements user.UserResolver for tests
 type stubUserResolver struct{}
 
-func (s stubUserResolver) ResolveUserInfoFromRequest(r *http.Request) *user.UserInfo {
+func (s stubUserResolver) ResolveUserInfoFromRequest(*http.Request) *user.UserInfo {
 	return &user.UserInfo{
 		Sid:       "sid-1",
 		Sub:       "u1",
@@ -23,7 +23,7 @@ func (s stubUserResolver) ResolveUserInfoFromRequest(r *http.Request) *user.User
 	}
 }
 
-func (s stubUserResolver) ResolveUserInfoFromOAuth(r *http.Request, clientID string, clientSecret string, redirectURI string) (*user.UserInfo, error) {
+func (s stubUserResolver) ResolveUserInfoFromOAuth(r *http.Request) (*user.UserInfo, error) {
 	return s.ResolveUserInfoFromRequest(r), nil
 }
 
@@ -38,7 +38,7 @@ func TestProxy_UsesRootCookieWhenPresent(t *testing.T) {
 
 	km := keymanager.NewKeyManager()
 	cfg := ServerConfig{
-		TokenKeys:    km.TokenKeys,
+		KeyManager:   *km,
 		UserResolver: stubUserResolver{},
 		Version:      "test",
 		TargetUrl:    backend.URL,
@@ -86,7 +86,7 @@ func TestProxy_GeneratesTokenFromUserResolverWhenNoCookie(t *testing.T) {
 
 	km := keymanager.NewKeyManager()
 	cfg := ServerConfig{
-		TokenKeys:    km.TokenKeys,
+		KeyManager:   *km,
 		UserResolver: stubUserResolver{},
 		Version:      "test",
 		TargetUrl:    backend.URL,
@@ -118,7 +118,7 @@ func TestProxy_MakeRootAndUnmakeRootEndpoints(t *testing.T) {
 	// we only test that endpoints exist and set/clear cookie; proxy must handle all requests
 	km := keymanager.NewKeyManager()
 	cfg := ServerConfig{
-		TokenKeys:    km.TokenKeys,
+		KeyManager:   *km,
 		UserResolver: stubUserResolver{},
 		Version:      "test",
 		TargetUrl:    "http://example.invalid", // not used in this test
@@ -132,6 +132,7 @@ func TestProxy_MakeRootAndUnmakeRootEndpoints(t *testing.T) {
 	// set secret env var and call with query params
 	old := os.Getenv("OAUTH2_BRO_MAKE_ROOT_SECRET")
 	_ = os.Setenv("OAUTH2_BRO_MAKE_ROOT_SECRET", "secret1")
+	//goland:noinspection GoUnhandledErrorResult
 	defer os.Setenv("OAUTH2_BRO_MAKE_ROOT_SECRET", old)
 	url := srv.URL + "/oauth2-bro/make-root?cookieSecret=secret1&sid=sid-1&sub=u1&name=name1&email=email@example.com"
 	req, _ := http.NewRequest("POST", url, nil)

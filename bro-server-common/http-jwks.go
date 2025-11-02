@@ -1,12 +1,13 @@
 package bro_server_common
 
 import (
-	"jonnyzzz.com/oauth2-bro/keymanager"
 	"log"
 	"net/http"
+
+	"jonnyzzz.com/oauth2-bro/keymanager"
 )
 
-func JwksHandler(tokenKeys keymanager.BroKeys) http.HandlerFunc {
+func JwksHandler(tokenKeys keymanager.BroAccessKeys) http.HandlerFunc {
 	jwks, err := tokenKeys.Jwks()
 	if err != nil {
 		log.Panicf("Failed to generate JWKS: %v", err)

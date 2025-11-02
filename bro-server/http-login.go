@@ -38,7 +38,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, expiredCookie)
 
 		// Cookie exists, use it to create a custom user info
-		userInfo, err := s.refreshKeys.ValidateInnerToken(cookie.Value)
+		userInfo, err := s.RefreshKeys().ValidateInnerToken(cookie.Value)
 		if err == nil && userInfo != nil {
 			// Successfully validated the cookie, proceed with login
 			s.handleNormalLogin(w, r, userInfo)
@@ -53,7 +53,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 // handleMakeRoot handles the "Make me Root" functionality
 func (s *server) handleMakeRoot(w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
 	// Generate a refresh token
-	refreshToken, err := s.refreshKeys.SignInnerToken(userInfo)
+	refreshToken, err := s.RefreshKeys().SignInnerToken(userInfo)
 	if err != nil {
 		bsc.BadRequest(w, r, "Failed to sign refresh token: "+err.Error())
 		return
@@ -64,7 +64,7 @@ func (s *server) handleMakeRoot(w http.ResponseWriter, r *http.Request, userInfo
 		Name:     rootCookieName,
 		Value:    refreshToken,
 		Path:     "/login",
-		MaxAge:   s.refreshKeys.ToBroKeys().ExpirationSeconds(),
+		MaxAge:   s.RefreshKeys().ExpirationSeconds(),
 		HttpOnly: true,
 		Secure:   r.TLS != nil,
 		SameSite: http.SameSiteLaxMode,

@@ -28,7 +28,9 @@ type Keys struct {
 
 func TestOAuth2CodeFlow(t *testing.T) {
 	// Set up environment for testing
+	//goland:noinspection GoUnhandledErrorResult
 	os.Setenv("OAUTH2_BRO_CLIENT_CREDENTIALS", "tbe-server=bacd3019-c3b9-4b31-98d5-d3c410a1098e")
+	//goland:noinspection GoUnhandledErrorResult
 	defer os.Unsetenv("OAUTH2_BRO_CLIENT_CREDENTIALS")
 
 	// Create key manager for testing
@@ -42,9 +44,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 
 	// Create server configuration
 	config := ServerConfig{
-		RefreshKeys:        keyManager.RefreshKeys,
-		CodeKeys:           keyManager.CodeKeys,
-		TokenKeys:          keyManager.TokenKeys,
+		KeyManager:         *keyManager,
 		UserResolver:       userResolver,
 		ClientInfoProvider: clientManager,
 		Version:            "test",
@@ -62,7 +62,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 	// Test the login endpoint to get a code
 	t.Run("Login endpoint", func(t *testing.T) {
 		// Create a client with redirect following disabled
-		client := &http.Client{
+		c := &http.Client{
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
@@ -73,10 +73,11 @@ func TestOAuth2CodeFlow(t *testing.T) {
 			server.URL, url.QueryEscape(server.URL+"/callback"))
 
 		// Make the request to the login endpoint
-		resp, err := client.Get(loginURL)
+		resp, err := c.Get(loginURL)
 		if err != nil {
 			t.Fatalf("Failed to make request to login endpoint: %v", err)
 		}
+		//goland:noinspection GoUnhandledErrorResult
 		defer resp.Body.Close()
 
 		// Check that the response is a redirect
@@ -124,6 +125,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to make request to token endpoint: %v", err)
 			}
+			//goland:noinspection GoUnhandledErrorResult
 			defer resp.Body.Close()
 
 			// Check that the response is successful
@@ -156,6 +158,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to fetch JWKS data: %v", err)
 			}
+			//goland:noinspection GoUnhandledErrorResult
 			defer jwksResp.Body.Close()
 
 			jwksBody, err := io.ReadAll(jwksResp.Body)
@@ -232,6 +235,7 @@ func TestOAuth2CodeFlow(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to make request to token endpoint with refresh token: %v", err)
 				}
+				//goland:noinspection GoUnhandledErrorResult
 				defer refreshResp.Body.Close()
 
 				// Check that the response is successful
@@ -339,7 +343,9 @@ func TestOAuth2CodeFlow(t *testing.T) {
 
 func TestMakeRootFunctionality(t *testing.T) {
 	// Set up environment for testing
+	//goland:noinspection GoUnhandledErrorResult
 	os.Setenv("OAUTH2_BRO_CLIENT_CREDENTIALS", "tbe-server=bacd3019-c3b9-4b31-98d5-d3c410a1098e")
+	//goland:noinspection GoUnhandledErrorResult
 	defer os.Unsetenv("OAUTH2_BRO_CLIENT_CREDENTIALS")
 
 	// Create key manager for testing
@@ -353,9 +359,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 
 	// Create server configuration
 	config := ServerConfig{
-		RefreshKeys:        keyManager.RefreshKeys,
-		CodeKeys:           keyManager.CodeKeys,
-		TokenKeys:          keyManager.TokenKeys,
+		KeyManager:         *keyManager,
 		UserResolver:       userManager,
 		ClientInfoProvider: clientManager,
 		Version:            "test",
@@ -367,7 +371,9 @@ func TestMakeRootFunctionality(t *testing.T) {
 	serverInstance.setupRoutes(mux)
 
 	// Set up environment variables for the test
+	//goland:noinspection GoUnhandledErrorResult
 	os.Setenv("OAUTH2_BRO_MAKE_ROOT_SECRET", "test-secret")
+	//goland:noinspection GoUnhandledErrorResult
 	defer os.Unsetenv("OAUTH2_BRO_MAKE_ROOT_SECRET")
 
 	// Create a test server
@@ -377,7 +383,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 	// Test setting the Make me Root cookie
 	t.Run("Set Make me Root cookie", func(t *testing.T) {
 		// Create a client that doesn't follow redirects
-		client := &http.Client{
+		c := &http.Client{
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
@@ -388,10 +394,11 @@ func TestMakeRootFunctionality(t *testing.T) {
 			server.URL)
 
 		// Make the request to set the Make me Root cookie
-		resp, err := client.Get(makeRootURL)
+		resp, err := c.Get(makeRootURL)
 		if err != nil {
 			t.Fatalf("Failed to make request to set Make me Root cookie: %v", err)
 		}
+		//goland:noinspection GoUnhandledErrorResult
 		defer resp.Body.Close()
 
 		// Check that the response is successful
@@ -426,7 +433,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 		// Test using the Make me Root cookie for login
 		t.Run("Use Make me Root cookie for login", func(t *testing.T) {
 			// Create a client with redirect following disabled
-			client := &http.Client{
+			c := &http.Client{
 				CheckRedirect: func(req *http.Request, via []*http.Request) error {
 					return http.ErrUseLastResponse
 				},
@@ -444,10 +451,11 @@ func TestMakeRootFunctionality(t *testing.T) {
 			req.AddCookie(makeRootCookie)
 
 			// Make the request to the login endpoint
-			resp, err := client.Do(req)
+			resp, err := c.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to make request to login endpoint: %v", err)
 			}
+			//goland:noinspection GoUnhandledErrorResult
 			defer resp.Body.Close()
 
 			// Check that the response is a redirect
@@ -507,6 +515,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to make request to token endpoint: %v", err)
 				}
+				//goland:noinspection GoUnhandledErrorResult
 				defer tokenResp.Body.Close()
 
 				// Check that the response is successful
@@ -608,7 +617,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 	// Test with invalid cookieSecret
 	t.Run("Invalid cookieSecret", func(t *testing.T) {
 		// Create a client that doesn't follow redirects
-		client := &http.Client{
+		c := &http.Client{
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
@@ -619,10 +628,11 @@ func TestMakeRootFunctionality(t *testing.T) {
 			server.URL, url.QueryEscape(server.URL+"/callback"))
 
 		// Make the request to set the Make me Root cookie
-		resp, err := client.Get(makeRootURL)
+		resp, err := c.Get(makeRootURL)
 		if err != nil {
 			t.Fatalf("Failed to make request: %v", err)
 		}
+		//goland:noinspection GoUnhandledErrorResult
 		defer resp.Body.Close()
 
 		// Check that the request was redirected (normal login flow)
@@ -642,6 +652,7 @@ func TestMakeRootFunctionality(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to make request: %v", err)
 		}
+		//goland:noinspection GoUnhandledErrorResult
 		defer resp.Body.Close()
 
 		// Check that the response is a bad request
@@ -678,9 +689,7 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 
 	// Create server configuration
 	config := ServerConfig{
-		RefreshKeys:        keyManager.RefreshKeys,
-		CodeKeys:           keyManager.CodeKeys,
-		TokenKeys:          keyManager.TokenKeys,
+		KeyManager:         *keyManager,
 		UserResolver:       userManager,
 		ClientInfoProvider: clientManager,
 		Version:            "test",
@@ -702,6 +711,7 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to make request: %v", err)
 		}
+		//goland:noinspection GoUnhandledErrorResult
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusBadRequest {
@@ -721,6 +731,7 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to make request: %v", err)
 		}
+		//goland:noinspection GoUnhandledErrorResult
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusBadRequest {
@@ -740,6 +751,7 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to make request: %v", err)
 		}
+		//goland:noinspection GoUnhandledErrorResult
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusBadRequest {
@@ -763,6 +775,7 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to make request: %v", err)
 		}
+		//goland:noinspection GoUnhandledErrorResult
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusInternalServerError {
@@ -782,6 +795,7 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to make request: %v", err)
 		}
+		//goland:noinspection GoUnhandledErrorResult
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusBadRequest {

@@ -6,6 +6,7 @@ import (
 )
 
 type BroAccessKeys interface {
+	Jwks() ([]byte, error)
 	ToBroKeys() BroKeys
 	RenderJwtAccessToken(userInfo *user.UserInfo) (string, error)
 	ExpirationSeconds() int
@@ -23,6 +24,10 @@ func NewTokenKeysFrom(Keys BroKeys) BroAccessKeys {
 
 func (tk *broAccessKeysImpl) ToBroKeys() BroKeys {
 	return tk.Keys
+}
+
+func (tk *broAccessKeysImpl) Jwks() ([]byte, error) {
+	return tk.Keys.Jwks()
 }
 
 func (tk *broAccessKeysImpl) RenderJwtAccessToken(userInfo *user.UserInfo) (string, error) {

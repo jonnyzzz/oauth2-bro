@@ -7,14 +7,10 @@ import (
 	"jonnyzzz.com/oauth2-bro/user"
 )
 
-type UserInfoProvider interface {
-	ToInnerJwtClaims() map[string]string
-}
-
 type BroInnerKeys interface {
-	SignInnerToken(userInfo UserInfoProvider) (string, error)
+	SignInnerToken(*user.UserInfo) (string, error)
 	ValidateInnerToken(tokenString string) (*user.UserInfo, error)
-	ToBroKeys() BroKeys
+	ExpirationSeconds() int
 }
 
 type broInnerKeysImpl struct {
@@ -29,16 +25,16 @@ func NewInnerKeys(Keys BroKeys, broVersion string) BroInnerKeys {
 	}
 }
 
-func (tk *broInnerKeysImpl) ToBroKeys() BroKeys {
-	return tk.Keys
+func (tk *broInnerKeysImpl) ExpirationSeconds() int {
+	return tk.Keys.ExpirationSeconds()
 }
 
-func (tk *broInnerKeysImpl) SignInnerToken(userInfo UserInfoProvider) (string, error) {
+func (tk *broInnerKeysImpl) SignInnerToken(user *user.UserInfo) (string, error) {
 	claims := gojwt.MapClaims{
 		"bro": tk.broVersion,
 	}
 
-	for k, v := range userInfo.ToInnerJwtClaims() {
+	for k, v := range user.ToInnerJwtClaims() {
 		claims[k] = v
 	}
 

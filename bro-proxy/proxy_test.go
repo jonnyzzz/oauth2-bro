@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"jonnyzzz.com/oauth2-bro/keymanager"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"jonnyzzz.com/oauth2-bro/keymanager"
 
 	"jonnyzzz.com/oauth2-bro/user"
 )
@@ -19,7 +20,7 @@ func TestProxyServer_JWKS(t *testing.T) {
 
 	mux := http.NewServeMux()
 	SetupServer(ServerConfig{
-		TokenKeys:    keyManager.TokenKeys,
+		KeyManager:   *keyManager,
 		UserResolver: userManager,
 		Version:      "test",
 		TargetUrl:    "http://localhost:8080",
@@ -104,7 +105,7 @@ func TestProxyServer_ProxyHandler(t *testing.T) {
 			"auth":    authHeader,
 			"success": "true",
 		}
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 	defer targetServer.Close()
 
@@ -114,7 +115,7 @@ func TestProxyServer_ProxyHandler(t *testing.T) {
 
 	mux := http.NewServeMux()
 	SetupServer(ServerConfig{
-		TokenKeys:    keyManager.TokenKeys,
+		KeyManager:   *keyManager,
 		UserResolver: userManager,
 		Version:      "test",
 		TargetUrl:    targetServer.URL,
@@ -228,7 +229,7 @@ func TestProxyServer_ProxyHandler_ErrorCases(t *testing.T) {
 
 	mux := http.NewServeMux()
 	SetupServer(ServerConfig{
-		TokenKeys:    keyManager.TokenKeys,
+		KeyManager:   *keyManager,
 		UserResolver: userManager,
 		Version:      "test",
 		TargetUrl:    "invalid-url",
@@ -250,7 +251,7 @@ func TestProxyServer_ProxyHandler_UserResolution(t *testing.T) {
 	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Just return success
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	}))
 	defer targetServer.Close()
 
@@ -260,7 +261,7 @@ func TestProxyServer_ProxyHandler_UserResolution(t *testing.T) {
 
 	mux := http.NewServeMux()
 	SetupServer(ServerConfig{
-		TokenKeys:    keyManager.TokenKeys,
+		KeyManager:   *keyManager,
 		UserResolver: userManager,
 		Version:      "test",
 		TargetUrl:    targetServer.URL,
