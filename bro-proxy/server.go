@@ -32,10 +32,6 @@ type server struct {
 	targetUrl          string
 }
 
-func (s *server) GetClientInfoProvider() client.ClientInfoProvider {
-	return s.clientInfoProvider
-}
-
 func (s *server) ClientInfoProvider() client.ClientInfoProvider {
 	return s.clientInfoProvider
 }

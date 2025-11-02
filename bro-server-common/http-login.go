@@ -9,7 +9,7 @@ import (
 )
 
 type HandleLoginServer interface {
-	GetClientInfoProvider() client.ClientInfoProvider
+	ClientInfoProvider() client.ClientInfoProvider
 }
 
 func HandleNormalLogin(h HandleLoginServer, w http.ResponseWriter, r *http.Request, signCode func(r *http.Request) (string, error)) {
@@ -27,7 +27,7 @@ func HandleNormalLogin(h HandleLoginServer, w http.ResponseWriter, r *http.Reque
 		BadRequest(w, r, "client_id parameter is missing")
 		return
 	}
-	if !h.GetClientInfoProvider().IsClientIdAllowed(clientId) {
+	if !h.ClientInfoProvider().IsClientIdAllowed(clientId) {
 		BadRequest(w, r, "client_id '"+clientId+"' parameter is not allowed")
 		return
 	}

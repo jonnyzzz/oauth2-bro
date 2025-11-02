@@ -46,10 +46,6 @@ func (s *server) CodeKeys() keymanager.BroInnerKeys {
 	return s.codeKeys
 }
 
-func (s *server) GetClientInfoProvider() client.ClientInfoProvider {
-	return s.clientInfoProvider
-}
-
 const (
 	rootCookieName = "oauth2-bro-make-me-root"
 )
