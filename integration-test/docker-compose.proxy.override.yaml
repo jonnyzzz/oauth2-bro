@@ -9,7 +9,7 @@ services:
 
     image: !reset null
     environment:
-      - OAUTH2_BRO_BIND_PORT=8077
+      - OAUTH2_BRO_HTTP_PORT=8077
       - OAUTH2_BRO_BIND_HOST=0.0.0.0
       - OAUTH2_BRO_MAKE_ROOT_SECRET=jonnyzzz
       - OAUTH2_BRO_PROXY_TARGET=http://tbe-server:8443

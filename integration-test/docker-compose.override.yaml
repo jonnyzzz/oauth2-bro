@@ -9,7 +9,7 @@ services:
 
     image: !reset null
     environment:
-      - OAUTH2_BRO_BIND_PORT=8085
+      - OAUTH2_BRO_HTTP_PORT=8085
       - OAUTH2_BRO_BIND_HOST=0.0.0.0
       - OAUTH2_BRO_MAKE_ROOT_SECRET=jonnyzzz
 

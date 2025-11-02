@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"jonnyzzz.com/oauth2-bro/keymanager"
 	"log"
 	"net/http"
 	"os"
+
+	"jonnyzzz.com/oauth2-bro/keymanager"
 
 	browproxy "jonnyzzz.com/oauth2-bro/bro-proxy"
 	browserver "jonnyzzz.com/oauth2-bro/bro-server"
@@ -17,7 +18,7 @@ import (
 var version = "SNAPSHOT"
 
 func printHelp() {
-	fmt.Println("OAuth2-bro - A simple OAuth2 authorization server")
+	fmt.Println("OAuth2-bro - IP-based OAuth2 authentication server")
 	fmt.Println("")
 	fmt.Println("Usage:")
 	fmt.Println("  oauth2-bro [options]")
@@ -26,24 +27,21 @@ func printHelp() {
 	fmt.Println("  -h, --help     Show this help message")
 	fmt.Println("  -v, --version  Show version information")
 	fmt.Println("")
-}
-
-func printVersion() {
-	fmt.Printf("OAuth2-bro version %s\n", version)
-}
-
-func resolveBindAddress() string {
-	bindPort := os.Getenv("OAUTH2_BRO_BIND_PORT")
-	if len(bindPort) == 0 {
-		bindPort = "8077"
-	}
-
-	bindHost := os.Getenv("OAUTH2_BRO_BIND_HOST")
-	if len(bindHost) == 0 {
-		bindHost = "localhost"
-	}
-
-	return bindHost + ":" + bindPort
+	fmt.Println("Operating Modes:")
+	fmt.Println("  Server Mode - Full OAuth2/OpenID Connect server with /login, /token, /jwks endpoints")
+	fmt.Println("  Proxy Mode  - Reverse proxy that injects JWT tokens (set OAUTH2_BRO_PROXY_TARGET)")
+	fmt.Println("")
+	fmt.Println("Network Configuration:")
+	fmt.Println("  OAUTH2_BRO_BIND_HOST            Bind address (default: localhost)")
+	fmt.Println("  OAUTH2_BRO_HTTP_PORT            HTTP port for internal connections")
+	fmt.Println("  OAUTH2_BRO_HTTPS_PORT           HTTPS port for external connections")
+	fmt.Println("  OAUTH2_BRO_HTTPS_CERT_FILE      Path to PEM certificate (required for HTTPS)")
+	fmt.Println("  OAUTH2_BRO_HTTPS_CERT_KEY_FILE  Path to PEM private key (required for HTTPS)")
+	fmt.Println("")
+	fmt.Println("  Note: At least one port (HTTP or HTTPS) must be configured.")
+	fmt.Println("        Both ports can run simultaneously: HTTPS for external clients,")
+	fmt.Println("        HTTP for internal service-to-service communication.")
+	fmt.Println("")
 }
 
 func main() {
@@ -67,7 +65,7 @@ func main() {
 	}
 
 	if *showVersion {
-		printVersion()
+		fmt.Printf("OAuth2-bro version %s\n", version)
 		return
 	}
 
@@ -101,21 +99,57 @@ func main() {
 		}, mux)
 	}
 
-	addr := resolveBindAddress()
+	bindHost := os.Getenv("OAUTH2_BRO_BIND_HOST")
+	if len(bindHost) == 0 {
+		bindHost = "localhost"
+	}
+	httpPort := os.Getenv("OAUTH2_BRO_HTTP_PORT")
+	httpsPort := os.Getenv("OAUTH2_BRO_HTTPS_PORT")
 	certFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_FILE")
 	certKeyFile := os.Getenv("OAUTH2_BRO_HTTPS_CERT_KEY_FILE")
 
-	var err error
-	if len(certFile) > 0 {
-		fmt.Printf("Listening https://%s\n", addr)
-		err = http.ListenAndServeTLS(addr, certFile, certKeyFile, mux)
-	} else {
-		//goland:noinspection HttpUrlsUsage
-		fmt.Printf("Listening http://%s\n", addr)
-		err = http.ListenAndServe(addr, mux)
+	// Validate configuration
+	if len(httpPort) == 0 && len(httpsPort) == 0 {
+		log.Fatalln("Error: At least one port must be configured (OAUTH2_BRO_HTTP_PORT or OAUTH2_BRO_HTTPS_PORT)")
 	}
 
-	if err != nil {
-		log.Fatalln("Failed to start HTTP server on ", addr, ": ", err)
+	// Check HTTPS certificate configuration
+	if len(httpsPort) > 0 {
+		if len(certFile) == 0 || len(certKeyFile) == 0 {
+			log.Fatalln("Error: HTTPS port configured but certificate files missing.\n" +
+				"  Set OAUTH2_BRO_HTTPS_CERT_FILE and OAUTH2_BRO_HTTPS_CERT_KEY_FILE")
+		}
+		fmt.Println("Using certificate files for HTTPS")
 	}
+
+	// Channel to capture errors from servers
+	// If either server fails, the process will exit
+	errChan := make(chan error, 2)
+
+	// Start HTTP server if configured
+	if len(httpPort) > 0 {
+		httpAddr := bindHost + ":" + httpPort
+		go func() {
+			//goland:noinspection HttpUrlsUsage
+			fmt.Printf("Listening http://%s\n", httpAddr)
+			if err := http.ListenAndServe(httpAddr, mux); err != nil {
+				errChan <- fmt.Errorf("HTTP server failed on %s: %w", httpAddr, err)
+			}
+		}()
+	}
+
+	// Start HTTPS server if configured
+	if len(httpsPort) > 0 {
+		httpsAddr := bindHost + ":" + httpsPort
+		go func() {
+			fmt.Printf("Listening https://%s\n", httpsAddr)
+			if err := http.ListenAndServeTLS(httpsAddr, certFile, certKeyFile, mux); err != nil {
+				errChan <- fmt.Errorf("HTTPS server failed on %s: %w", httpsAddr, err)
+			}
+		}()
+	}
+
+	// Wait for any server to fail - this will cause the process to exit
+	err := <-errChan
+	log.Fatalln("Server stopped: ", err)
 }

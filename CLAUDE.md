@@ -80,17 +80,28 @@ cd keymanager && go test ./...
 
 ### Running Locally
 ```bash
-# Standard OAuth2 mode
-cd oauth2-bro && go run .
+# HTTP only mode
+cd oauth2-bro && OAUTH2_BRO_HTTP_PORT=8077 go run .
+
+# HTTPS only mode (requires certificate)
+cd oauth2-bro && \
+  OAUTH2_BRO_HTTPS_PORT=8443 \
+  OAUTH2_BRO_HTTPS_CERT_FILE=/path/to/cert.pem \
+  OAUTH2_BRO_HTTPS_CERT_KEY_FILE=/path/to/key.pem \
+  go run .
+
+# Dual HTTP/HTTPS mode (recommended)
+cd oauth2-bro && \
+  OAUTH2_BRO_HTTP_PORT=8077 \
+  OAUTH2_BRO_HTTPS_PORT=8443 \
+  OAUTH2_BRO_HTTPS_CERT_FILE=/path/to/cert.pem \
+  OAUTH2_BRO_HTTPS_CERT_KEY_FILE=/path/to/key.pem \
+  go run .
 
 # Proxy mode
-cd oauth2-bro && OAUTH2_BRO_PROXY_TARGET=http://localhost:8080 go run .
-
-# With custom configuration
 cd oauth2-bro && \
-  OAUTH2_BRO_BIND_PORT=9090 \
-  OAUTH2_BRO_EMAIL_DOMAIN=example.com \
-  OAUTH2_BRO_ALLOWED_IP_MASKS="10.0.0.0/8,192.168.0.0/16" \
+  OAUTH2_BRO_HTTP_PORT=8077 \
+  OAUTH2_BRO_PROXY_TARGET=http://localhost:8080 \
   go run .
 ```
 
@@ -105,9 +116,16 @@ cd oauth2-bro && \
 
 All configuration is via environment variables. Key variables:
 
-**Server Basics**
-- `OAUTH2_BRO_BIND_PORT` (default: 8077)
+**Network Settings**
 - `OAUTH2_BRO_BIND_HOST` (default: localhost)
+- `OAUTH2_BRO_HTTP_PORT` - HTTP port for internal connections
+- `OAUTH2_BRO_HTTPS_PORT` - HTTPS port for external connections
+- `OAUTH2_BRO_HTTPS_CERT_FILE` - Path to PEM certificate (required for HTTPS)
+- `OAUTH2_BRO_HTTPS_CERT_KEY_FILE` - Path to PEM private key (required for HTTPS)
+- At least one port (HTTP or HTTPS) must be configured
+- Both can run simultaneously for dual HTTP/HTTPS operation
+
+**Authentication**
 - `OAUTH2_BRO_EMAIL_DOMAIN` - Domain for generated email addresses
 - `OAUTH2_BRO_ALLOWED_IP_MASKS` - CIDR ranges (e.g., "10.0.0.0/8,192.168.0.0/16")
 
@@ -147,8 +165,14 @@ For stateless multi-node deployments:
 
 2. **Proxy vs Standard Mode**: The main.go switches between modes. Proxy mode is simpler (no OAuth2 flow, just JWT injection), while standard mode implements full OAuth2 authorization code grant.
 
-3. **Security Context**: This is designed for TRUSTED networks only. IP-based authentication is inherently less secure than credential-based auth. Always deploy behind firewalls/VPNs.
+3. **Dual HTTP/HTTPS Operation**: OAuth2-bro can run HTTP and HTTPS simultaneously on different ports. This solves the common problem where backend services (like JetBrains IDE Services) struggle to connect to HTTPS OAuth2 providers:
+   - HTTPS port (8443) for external clients (browsers, external tools)
+   - HTTP port (8077) for internal service-to-service communication
+   - Both serve the same OAuth2 server, no session affinity needed
+   - Eliminates certificate configuration complexity for backend services
 
-4. **JetBrains IDE Services Integration**: See Ide-Services-Recipes.md for practical integration patterns. The proxy mode aligns with JetBrains "No Login" authentication pattern.
+4. **Security Context**: This is designed for TRUSTED networks only. IP-based authentication is inherently less secure than credential-based auth. Always deploy behind firewalls/VPNs.
 
-5. **Docker Build**: The Dockerfile runs tests for ALL modules during build, ensuring the entire workspace is validated before producing the final image.
+5. **JetBrains IDE Services Integration**: See Ide-Services-Recipes.md for practical integration patterns. The dual HTTP/HTTPS mode is the recommended configuration for IDE Services deployments.
+
+6. **Docker Build**: The Dockerfile runs tests for ALL modules during build, ensuring the entire workspace is validated before producing the final image.

@@ -1,0 +1,22 @@
+## This configuration file is for IDE Services to use OAuth2-bro in dual HTTP/HTTPS mode
+## - login-url uses HTTPS (for browser redirects)
+## - token-url uses HTTP (for backend communication)
+## - jwt-certs-url uses HTTP (for backend communication)
+##
+## This setup solves the problem of configuring HTTPS certificates between services
+## by using HTTP for internal service-to-service communication while maintaining
+## HTTPS for external browser access.
+
+tbe:
+  auth:
+    # Browser redirects use HTTPS (external port 8443)
+    login-url: 'https://localhost:8078/login'
+
+    # Backend service-to-service calls use HTTP (internal port 8077, not exposed externally)
+    token-url: 'http://mock-auth:8085/token'
+    jwt-certs-url: 'http://mock-auth:8085/jwks'
+
+    root-admin-emails:
+      - 'admin@company.com'
+    root-admin-subjects:
+      - 'admin'

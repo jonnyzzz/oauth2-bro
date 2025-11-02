@@ -21,13 +21,23 @@ The OAuth2 server is working as follows
 HTTP Server
 ---
 
-`OAUTH2_BRO_BIND_PORT` (defaults to 8077) -- the server port to bind
-
 `OAUTH2_BRO_BIND_HOST` (defaults to localhost) -- the server bind host address, for production, or Docker use the right network interface(s) to bind
 
-`OAUTH2_BRO_HTTPS_CERT_FILE` -- if set, enabled HTTPS with the certificate, as a file with a PEM encoded certificate
+`OAUTH2_BRO_HTTP_PORT` -- HTTP server port for internal connections (optional, at least one of HTTP_PORT or HTTPS_PORT must be set)
 
-`OAUTH2_BRO_HTTPS_CERT_KEY_FILE`  -- if set, enabled HTTPS with the server key-pair, as a file with a PEM encoded private key
+`OAUTH2_BRO_HTTPS_PORT` -- HTTPS server port for external connections (optional, at least one of HTTP_PORT or HTTPS_PORT must be set)
+
+`OAUTH2_BRO_HTTPS_CERT_FILE` -- Path to PEM encoded certificate file (required if HTTPS_PORT is set)
+
+`OAUTH2_BRO_HTTPS_CERT_KEY_FILE` -- Path to PEM encoded private key file (required if HTTPS_PORT is set)
+
+**Dual HTTP/HTTPS Operation:**
+
+Both HTTP and HTTPS ports can run simultaneously on the same server instance. This is the recommended configuration for services that need to:
+- Expose HTTPS to external clients (browsers, external tools)
+- Provide HTTP endpoint for internal service-to-service communication (avoiding certificate complexity for backend services like JetBrains IDE Services)
+
+Example: `OAUTH2_BRO_HTTP_PORT=8077 OAUTH2_BRO_HTTPS_PORT=8443` runs both protocols simultaneously
 
 `OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE` -- optional key file for access token private key, PEM encoded
 

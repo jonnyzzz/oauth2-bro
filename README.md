@@ -13,11 +13,25 @@ OAuth2-bro simplifies authentication by:
 - Providing standard OAuth2 flows for seamless integration
 - Supporting stateless, multi-node deployments
 
-## 🔧 JetBrains IDE Services Recipes and Integration
+## 🔧 JetBrains IDE Services Integration
 
-Looking for practical integration options with JetBrains IDE Services, including no-login proxy mode and admin override? See Ide-Services-Recipes.md for detailed recipes, configuration snippets, and local demo scripts.
+### Dual HTTP/HTTPS Setup (Recommended for Production)
 
-- Recipes: [JetBrains IDE Services](Ide-Services-Recipes.md)
+**Problem:** Backend services struggle to connect to HTTPS OAuth2 providers due to certificate complexity.
+
+**Solution:** OAuth2-bro can run HTTP and HTTPS simultaneously:
+- **HTTPS (port 8443)** for browser login redirects
+- **HTTP (port 8077)** for backend service communication (not exposed externally)
+
+This eliminates certificate configuration complexity for backend services while maintaining security for external access.
+
+📖 **[Complete Guide: Dual HTTP/HTTPS Setup](Dual-HTTP-HTTPS-Setup.md)** - Architecture diagrams, security considerations, and deployment examples
+
+### Quick Start Recipes
+
+For step-by-step integration recipes including no-login proxy mode and admin override:
+
+- 📖 [JetBrains IDE Services Integration Recipes](Ide-Services-Recipes.md)
 
 ## 🤝 Contributing
 
@@ -79,22 +93,27 @@ Your OAuth2 server is now running at `http://localhost:8077`
 
 OAuth2-bro uses environment variables for all configuration:
 
-### Basic Settings
+### Network Settings
 
 | Variable | Description                                                              | Default |
 |----------|--------------------------------------------------------------------------|---------|
-| `OAUTH2_BRO_BIND_PORT` | Server port                                                              | 8077 |
 | `OAUTH2_BRO_BIND_HOST` | Bind address                                                             | localhost |
+| `OAUTH2_BRO_HTTP_PORT` | HTTP port for internal connections                                       | - |
+| `OAUTH2_BRO_HTTPS_PORT` | HTTPS port for external connections                                      | - |
+| `OAUTH2_BRO_HTTPS_CERT_FILE` | Path to PEM certificate (required for HTTPS)                            | - |
+| `OAUTH2_BRO_HTTPS_CERT_KEY_FILE` | Path to PEM private key (required for HTTPS)                         | - |
+
+**Note:** At least one port (HTTP or HTTPS) must be configured. Both can run simultaneously for dual operation:
+- **HTTPS** for external clients (requires certificate)
+- **HTTP** for internal service-to-service communication (avoids certificate complexity)
+
+### Authentication Settings
+
+| Variable | Description                                                              | Default |
+|----------|--------------------------------------------------------------------------|---------|
 | `OAUTH2_BRO_EMAIL_DOMAIN` | Domain for generated emails (e.g., `ip-127-0-0-1@your-domain`)           | - |
 | `OAUTH2_BRO_ALLOWED_IP_MASKS` | Comma-separated CIDR ranges (e.g., "10.0.0.0/8,192.168.0.0/16")          | - |
 | `OAUTH2_BRO_CLIENT_CREDENTIALS` | Optional clientId/secret credentials ("client1=secret1,client2=secret2") | - |
-
-### HTTPS Configuration (optional)
-
-| Variable | Description |
-|----------|-------------|
-| `OAUTH2_BRO_HTTPS_CERT_FILE` | Path to PEM encoded certificate |
-| `OAUTH2_BRO_HTTPS_CERT_KEY_FILE` | Path to PEM encoded private key |
 
 
 ### Token Configuration
@@ -149,37 +168,74 @@ The JWT token expiration time is affecting the cookie expiration time, adjust if
 Important for multi-node setups: all proxy nodes must use the same token signing keys so that the JWT in the cookie can be validated by any node. Share/synchronize the Token keys across nodes. See Spec.md for details.
 
 
-## 🔑 Key Generation
+## 🔑 Key and Certificate Generation
 
-For production deployments, generate RSA keys manually:
+For production deployments, generate RSA keys and certificates manually:
 
 ```bash
-# Generate 2048-bit RSA key for tokens/codes
+# Generate RSA keys for token signing
 openssl genrsa -out token-key.pem 2048
 openssl genrsa -out code-key.pem 2048
 openssl genrsa -out refresh-key.pem 4096
+
+# Generate HTTPS certificate (replace with your domain)
+openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout server-key.pem -out server-cert.pem \
+  -days 365 -subj "/CN=your-domain.com"
 ```
 
 ## 🏭 Production Deployment
 
-### Single Node
+### Single Node with HTTPS
 
 ```bash
 docker run -d \
   --name oauth2-bro \
   --restart unless-stopped \
-  -p 443:8077 \
+  -p 443:8443 \
+  -e OAUTH2_BRO_BIND_HOST=0.0.0.0 \
+  -e OAUTH2_BRO_HTTPS_PORT=8443 \
   -e OAUTH2_BRO_EMAIL_DOMAIN=company.com \
   -e OAUTH2_BRO_ALLOWED_IP_MASKS="10.0.0.0/8,192.168.0.0/16" \
   -e OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE=/keys/token-key.pem \
   -e OAUTH2_BRO_CODE_RSA_KEY_PEM_FILE=/keys/code-key.pem \
   -e OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE=/keys/refresh-key.pem \
-  -e OAUTH2_BRO_HTTPS_CERT_FILE=/certs/server.crt \
-  -e OAUTH2_BRO_HTTPS_CERT_KEY_FILE=/certs/server.key \
+  -e OAUTH2_BRO_HTTPS_CERT_FILE=/certs/server-cert.pem \
+  -e OAUTH2_BRO_HTTPS_CERT_KEY_FILE=/certs/server-key.pem \
   -v /path/to/keys:/keys:ro \
   -v /path/to/certs:/certs:ro \
   oauth2-bro
 ```
+
+### Dual HTTP/HTTPS (Recommended for Internal Services)
+
+When OAuth2-bro needs to integrate with backend services that can't easily use HTTPS:
+
+```bash
+docker run -d \
+  --name oauth2-bro \
+  --restart unless-stopped \
+  -p 443:8443 \
+  -p 8077:8077 \
+  -e OAUTH2_BRO_BIND_HOST=0.0.0.0 \
+  -e OAUTH2_BRO_HTTP_PORT=8077 \
+  -e OAUTH2_BRO_HTTPS_PORT=8443 \
+  -e OAUTH2_BRO_EMAIL_DOMAIN=company.com \
+  -e OAUTH2_BRO_ALLOWED_IP_MASKS="10.0.0.0/8,192.168.0.0/16" \
+  -e OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE=/keys/token-key.pem \
+  -e OAUTH2_BRO_CODE_RSA_KEY_PEM_FILE=/keys/code-key.pem \
+  -e OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE=/keys/refresh-key.pem \
+  -e OAUTH2_BRO_HTTPS_CERT_FILE=/certs/server-cert.pem \
+  -e OAUTH2_BRO_HTTPS_CERT_KEY_FILE=/certs/server-key.pem \
+  -v /path/to/keys:/keys:ro \
+  -v /path/to/certs:/certs:ro \
+  oauth2-bro
+```
+
+**Benefits of dual HTTP/HTTPS:**
+- External clients use HTTPS (port 443) for secure communication
+- Internal services use HTTP (port 8077) without certificate complexity
+- Both endpoints serve the same OAuth2 server
 
 ### Multi-Node Deployment
 

@@ -1,2 +1,4 @@
 tbe*
-ide-service*
+ide-services/
+ide-services-*/
+https-certs*

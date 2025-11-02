@@ -1,0 +1,30 @@
+## This docker compose file demonstrates dual HTTP/HTTPS configuration
+## OAuth2-bro runs with both HTTP (8077) and HTTPS (8443) ports
+## - IDE Services backend connects via HTTP (avoids certificate complexity)
+## - Browsers/external clients use HTTPS (secure communication)
+##
+## IMPORTANT: HTTP port (8077) is NOT exposed externally - only used for internal service communication
+services:
+  mock-auth:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+
+    image: !reset null
+    environment:
+      - OAUTH2_BRO_HTTP_PORT=8085      # Internal ONLY - not exposed externally
+      - OAUTH2_BRO_HTTPS_PORT=8078     # External - for browsers
+      - OAUTH2_BRO_BIND_HOST=0.0.0.0
+      - OAUTH2_BRO_MAKE_ROOT_SECRET=jonnyzzz
+      - OAUTH2_BRO_HTTPS_CERT_FILE=/certs/oauth2-bro-cert.pem
+      - OAUTH2_BRO_HTTPS_CERT_KEY_FILE=/certs/oauth2-bro-key.pem
+    ports:
+      - "8078:8078"  # ONLY HTTPS port exposed - HTTP port 8077 stays internal
+    volumes:
+      - ../https-certs:/certs:ro
+
+  tbe-server:
+    volumes:
+      - ../ide-services-patch.https.yaml:/tmp-bro/ide-services-patch.https.yaml
+    environment:
+      - JAVA_TOOL_OPTIONS=-Dspring.config.additional-location=file:/tmp/application-demo.yml,file:/tmp-bro/ide-services-patch.https.yaml -Dtbe.deployment.import-machine-config-path=/tmp/your-company-machine-config.json
