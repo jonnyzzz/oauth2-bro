@@ -6,13 +6,16 @@ import (
 	"net/url"
 
 	"jonnyzzz.com/oauth2-bro/client"
+	"jonnyzzz.com/oauth2-bro/keymanager"
+	"jonnyzzz.com/oauth2-bro/user"
 )
 
 type HandleLoginServer interface {
 	ClientInfoProvider() client.ClientInfoProvider
+	CodeKeys() keymanager.BroInnerKeys
 }
 
-func HandleNormalLogin(h HandleLoginServer, w http.ResponseWriter, r *http.Request, signCode func(r *http.Request) (string, error)) {
+func HandleNormalLogin(h HandleLoginServer, w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
 	queryParams := r.URL.Query()
 
 	// Extract the parameters from your example
@@ -52,7 +55,12 @@ func HandleNormalLogin(h HandleLoginServer, w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	codeToken, err := signCode(r)
+	if userInfo == nil {
+		BadRequest(w, r, "Failed to sign code token. failed to resolve user info and IP from request")
+		return
+	}
+
+	codeToken, err := h.CodeKeys().SignInnerToken(userInfo)
 	if err != nil {
 		BadRequest(w, r, "Failed to sign code token. "+err.Error())
 		return

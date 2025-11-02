@@ -1,7 +1,6 @@
 package bro_proxy
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -122,13 +121,8 @@ func (s *server) setupReverseProxy(target *url.URL) http.Handler {
 }
 
 func (s *server) login(w http.ResponseWriter, r *http.Request) {
-	bsc.HandleNormalLogin(s, w, r, func(r *http.Request) (string, error) {
-		userInfo := s.userResolver.ResolveUserInfoFromRequest(r)
-		if userInfo == nil {
-			return "", fmt.Errorf("failed to resolve user info and IP from request")
-		}
-		return s.innerKeys.SignInnerToken(userInfo)
-	})
+	userInfo := s.userResolver.ResolveUserInfoFromRequest(r)
+	bsc.HandleNormalLogin(s, w, r, userInfo)
 }
 
 func (s *server) token(w http.ResponseWriter, r *http.Request) {

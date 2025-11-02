@@ -1,7 +1,6 @@
 package broserver
 
 import (
-	"fmt"
 	"net/http"
 
 	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
@@ -80,16 +79,10 @@ func (s *server) handleMakeRoot(w http.ResponseWriter, r *http.Request, userInfo
 
 // handleNormalLogin handles the normal login flow
 func (s *server) handleNormalLogin(w http.ResponseWriter, r *http.Request, customUserInfo *user.UserInfo) {
-	bsc.HandleNormalLogin(s, w, r, func(r *http.Request) (string, error) {
-		// Use custom user info if provided, otherwise resolve from request
-		userInfo := customUserInfo
-		if userInfo == nil {
-			userInfo = s.userResolver.ResolveUserInfoFromRequest(r)
-			if userInfo == nil {
-				return "", fmt.Errorf("failed to resolve user info and IP from request")
-			}
-		}
+	userInfo := customUserInfo
+	if userInfo == nil {
+		userInfo = s.userResolver.ResolveUserInfoFromRequest(r)
+	}
 
-		return s.codeKeys.SignInnerToken(userInfo)
-	})
+	bsc.HandleNormalLogin(s, w, r, userInfo)
 }
