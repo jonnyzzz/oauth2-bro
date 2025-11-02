@@ -25,6 +25,7 @@ func initKeyId(envKeyId string, tk *broKeysImpl) {
 	externalKeyId := os.Getenv(envKeyId)
 	if len(externalKeyId) > 0 {
 		tk.keyId = externalKeyId
+		log.Println("Using key ID ", shortenKeyIdForLog(tk.keyId))
 		return
 	}
 
@@ -35,7 +36,17 @@ func initKeyId(envKeyId string, tk *broKeysImpl) {
 	}
 
 	tk.keyId = "oauth2-bro-" + hex.EncodeToString(sha512.New().Sum(publicKeyDER))
-	log.Println("Using key ID ", tk.keyId)
+	log.Println("Using key ID ", shortenKeyIdForLog(tk.keyId))
+}
+
+// shortenKeyIdForLog shortens a key ID for logging purposes using industry-best practice:
+// takes the prefix and first 12 characters of the hash for readability while maintaining uniqueness
+func shortenKeyIdForLog(keyId string) string {
+	prefix := "oauth2-bro-"
+	if len(keyId) <= len(prefix)+12 {
+		return keyId
+	}
+	return keyId[:len(prefix)+12]
 }
 
 func initPrivateKey(envKeyPemFile string, tk *broKeysImpl, defaultKeyBits int) {
