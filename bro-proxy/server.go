@@ -88,6 +88,17 @@ func (s *server) setupRoutes(mux *http.ServeMux) {
 
 func (s *server) setupReverseProxy(target *url.URL) http.Handler {
 	proxy := httputil.NewSingleHostReverseProxy(target)
+
+	oldModifyResponse := proxy.ModifyResponse
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		var err error = nil
+		if oldModifyResponse != nil {
+			err = oldModifyResponse(resp)
+		}
+		resp.Header.Set("X-Bro", "OAuth2-bro "+s.version)
+		return err
+	}
+
 	oldDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		oldDirector(req)
