@@ -1,8 +1,9 @@
 package broserver
 
 import (
-	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
 	"net/http"
+
+	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
 
 	"jonnyzzz.com/oauth2-bro/client"
 	"jonnyzzz.com/oauth2-bro/keymanager"
@@ -27,6 +28,10 @@ type server struct {
 	userResolver       user.UserResolver
 	clientInfoProvider client.ClientInfoProvider
 	version            string
+}
+
+func (s *server) GetClientInfoProvider() client.ClientInfoProvider {
+	return s.clientInfoProvider
 }
 
 const (
