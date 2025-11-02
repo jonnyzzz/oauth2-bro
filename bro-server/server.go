@@ -30,6 +30,14 @@ type server struct {
 	version            string
 }
 
+func (s *server) TokenKeys() keymanager.BroAccessKeys {
+	return s.tokenKeys
+}
+
+func (s *server) RefreshKeys() keymanager.BroInnerKeys {
+	return s.refreshKeys
+}
+
 func (s *server) GetClientInfoProvider() client.ClientInfoProvider {
 	return s.clientInfoProvider
 }

@@ -1,10 +1,10 @@
 package broserver
 
 import (
-	"encoding/json"
-	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
 	"log"
 	"net/http"
+
+	bsc "jonnyzzz.com/oauth2-bro/bro-server-common"
 
 	"jonnyzzz.com/oauth2-bro/user"
 )
@@ -53,7 +53,7 @@ func (s *server) token(w http.ResponseWriter, r *http.Request) {
 			UserEmail: keymanagerUserInfo.UserEmail,
 		}
 
-		s.renderTokenResponse(w, r, userInfo)
+		bsc.RenderTokenResponse(s, w, r, userInfo)
 		return
 	}
 
@@ -78,57 +78,10 @@ func (s *server) token(w http.ResponseWriter, r *http.Request) {
 			UserEmail: keymanagerUserInfo.UserEmail,
 		}
 
-		//TODO: remember visited code to reject it next time
-		s.renderTokenResponse(w, r, userInfo)
+		bsc.RenderTokenResponse(s, w, r, userInfo)
 		return
 	}
 
 	log.Printf("token request %s %s %s \n\n", r.Method, r.URL.String(), r.Form.Encode())
 	w.WriteHeader(500)
-}
-
-//example  POST /token client_id=tbe-server&client_secret=bacd3019-c3b9-4b31-98d5-d3c410a1098e&
-//code=TODO%3A+it+is+not+the+code&
-//grant_type=authorization_code
-//&redirect_uri=http%3A%2F%2Flocalhost%3A8443%2Fapi%2Flogin%2Fauthenticated
-
-type TokenResponse struct {
-	IdToken     string `json:"id_token"`
-	AccessToken string `json:"access_token"`
-	ExpiresIn   int    `json:"expires_in"`
-
-	RefreshToken string `json:"refresh_token"`
-	TokenType    string `json:"token_type"`
-}
-
-func (s *server) renderTokenResponse(w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
-	tokenString, err := s.tokenKeys.RenderJwtAccessToken(userInfo)
-
-	if err != nil {
-		bsc.BadRequest(w, r, "Failed to sign new token for username="+userInfo.String()+" "+err.Error())
-		return
-	}
-
-	refreshTokenString, err := s.refreshKeys.SignInnerToken(userInfo)
-	if err != nil {
-		bsc.BadRequest(w, r, "Failed to sign new refresh token for username="+userInfo.String()+" "+err.Error())
-		return
-	}
-
-	log.Println("Generated refresh token for user =", userInfo, "\n", refreshTokenString)
-	response := TokenResponse{
-		TokenType:    "Bearer",
-		ExpiresIn:    s.tokenKeys.ExpirationSeconds() - 3, // remove 3 seconds to lower collision probability
-		IdToken:      tokenString,
-		AccessToken:  tokenString,
-		RefreshToken: refreshTokenString,
-	}
-
-	responseData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		bsc.BadRequest(w, nil, "Failed to serialize response "+err.Error())
-		return
-	}
-	_, err = w.Write(responseData)
-	log.Println("Generated token for user =", userInfo, "\n", string(responseData))
 }
