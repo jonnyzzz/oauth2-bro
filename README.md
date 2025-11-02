@@ -54,6 +54,16 @@ management, security, and governance of AI and Developer Tools at scale. The nam
 inspired by Orwell's "1984" - but instead of watching you, this Big Brother just checks
 your IP address!
 
+**⚠️ IMPORTANT NOTICE**
+
+This project is **NOT** an official JetBrains product and is **NOT** affiliated with, endorsed
+by, or maintained by JetBrains or any of its subsidiaries.
+
+OAuth2-bro is an independent, community-driven open-source project created to solve IP-based
+authentication challenges. While it was initially developed to support JetBrains IDE Services
+integration scenarios, it is a standalone solution that can be used with any service requiring
+seamless OAuth2 authentication.
+
 ## User Authentication Rules
 See the `ResolveUserInfoFromRequest` function under `user/user-manager.go` to understand the current approach better.
 Fork this repository to change the logic or contribute to the original one. We are eager to learn about your needs.
