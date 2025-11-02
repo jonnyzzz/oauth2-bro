@@ -1,6 +1,7 @@
 package bro_proxy
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -14,19 +15,41 @@ import (
 
 // ServerConfig holds the configuration for the server
 type ServerConfig struct {
-	TokenKeys    keymanager.BroAccessKeys
-	UserResolver user.UserResolver
-	Version      string
-	TargetUrl    string
+	ClientInfoProvider client.ClientInfoProvider
+	TokenKeys          keymanager.BroAccessKeys
+	UserResolver       user.UserResolver
+	Version            string
+	TargetUrl          string
 }
 
 // server holds all the server state and handlers
 type server struct {
 	tokenKeys          keymanager.BroAccessKeys
+	innerKeys          keymanager.BroInnerKeys
 	userResolver       user.UserResolver
 	clientInfoProvider client.ClientInfoProvider
 	version            string
 	targetUrl          string
+}
+
+func (s *server) GetClientInfoProvider() client.ClientInfoProvider {
+	return s.clientInfoProvider
+}
+
+func (s *server) ClientInfoProvider() client.ClientInfoProvider {
+	return s.clientInfoProvider
+}
+
+func (s *server) RefreshKeys() keymanager.BroInnerKeys {
+	return s.innerKeys
+}
+
+func (s *server) CodeKeys() keymanager.BroInnerKeys {
+	return s.innerKeys
+}
+
+func (s *server) TokenKeys() keymanager.BroAccessKeys {
+	return s.tokenKeys
 }
 
 const (
@@ -35,10 +58,12 @@ const (
 
 func newServer(config ServerConfig) *server {
 	return &server{
-		tokenKeys:    config.TokenKeys,
-		userResolver: config.UserResolver,
-		version:      config.Version,
-		targetUrl:    config.TargetUrl,
+		tokenKeys:          config.TokenKeys,
+		innerKeys:          keymanager.NewInnerKeys(config.TokenKeys.ToBroKeys(), config.Version), //TODO: we use same keys
+		userResolver:       config.UserResolver,
+		version:            config.Version,
+		targetUrl:          config.TargetUrl,
+		clientInfoProvider: config.ClientInfoProvider,
 	}
 }
 
@@ -55,6 +80,8 @@ func (s *server) setupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oauth2-bro/make-root", wrapResponse(s.handleMakeRoot))
 	mux.HandleFunc("/oauth2-bro/health", wrapResponse(bsc.HealthHandler))
 	mux.HandleFunc("/oauth2-bro/jwks", wrapResponse(bsc.JwksHandler(s.tokenKeys.ToBroKeys())))
+	mux.HandleFunc("/login", wrapResponse(s.login))
+	mux.HandleFunc("/token", wrapResponse(s.token))
 
 	// TargetUrl server URL
 	target, err := url.Parse(s.targetUrl)
@@ -96,4 +123,18 @@ func (s *server) setupReverseProxy(target *url.URL) http.Handler {
 	}
 
 	return proxy
+}
+
+func (s *server) login(w http.ResponseWriter, r *http.Request) {
+	bsc.HandleNormalLogin(s, w, r, func(r *http.Request) (string, error) {
+		userInfo := s.userResolver.ResolveUserInfoFromRequest(r)
+		if userInfo == nil {
+			return "", fmt.Errorf("failed to resolve user info and IP from request")
+		}
+		return s.innerKeys.SignInnerToken(userInfo)
+	})
+}
+
+func (s *server) token(w http.ResponseWriter, r *http.Request) {
+	bsc.Token(s, w, r)
 }

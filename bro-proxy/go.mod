@@ -1,4 +1,4 @@
-module jonnyzzz.com/oauth2-bro/bro-server
+module jonnyzzz.com/oauth2-bro/bro-proxy
 
 go 1.24.5
 

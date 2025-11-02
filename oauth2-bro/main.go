@@ -82,10 +82,11 @@ func main() {
 	if len(proxyTarget) > 0 {
 		fmt.Println("Running reverse-proxy with proxy target: ", proxyTarget)
 		browproxy.SetupServer(browproxy.ServerConfig{
-			TokenKeys:    keymanager.NewTokenKeys(),
-			UserResolver: userManager,
-			Version:      version,
-			TargetUrl:    proxyTarget,
+			ClientInfoProvider: clientManager,
+			TokenKeys:          keymanager.NewTokenKeys(),
+			UserResolver:       userManager,
+			Version:            version,
+			TargetUrl:          proxyTarget,
 		}, mux)
 	} else {
 		keyManager := keymanager.NewKeyManager()
