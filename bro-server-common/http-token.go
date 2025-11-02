@@ -67,7 +67,7 @@ func Token(s HandleToken, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		RenderTokenResponse(s, w, r, userInfo)
+		renderTokenResponse(s, w, r, userInfo)
 		return
 	}
 
@@ -84,7 +84,7 @@ func Token(s HandleToken, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		RenderTokenResponse(s, w, r, userInfo)
+		renderTokenResponse(s, w, r, userInfo)
 		return
 	}
 
@@ -92,7 +92,7 @@ func Token(s HandleToken, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(500)
 }
 
-func RenderTokenResponse(s HandleToken, w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
+func renderTokenResponse(s HandleToken, w http.ResponseWriter, r *http.Request, userInfo *user.UserInfo) {
 	//TODO: remember visited code to reject it next time
 	tokenString, err := s.TokenKeys().RenderJwtAccessToken(userInfo)
 
