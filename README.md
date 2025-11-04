@@ -15,27 +15,35 @@ OAuth2-bro simplifies authentication by:
 - Providing standard OAuth2 flows for seamless integration
 - Supporting stateless, multi-node deployments
 
-### User Authentication Rules
-See the `ResolveUserInfoFromRequest` function under `user/user-manager.go` to understand the current approach better.
-Fork this repository to change the logic or contribute to the original one. We are eager to learn about your needs.
+### 📋 Use Cases
 
-### Quick Start Recipes
+- **University classrooms** - Shared computers with rotating users
+- **Remote development** - Secure access to development machines without credential distribution
+- **Internal microservices** - Skip credential management for services behind your firewall
+- **Machine-to-machine auth** - Authorize services based on their network location
+- **Corporate integration** - Bridge to existing authentication systems
+- **Development environments** - Quick auth setup without the complexity
+
+## The IP rules
+
+The rules are set in the `OAUTH2_BRO_ALLOWED_IP_MASKS` environment variable, which is the ',' separated list of CIDR ranges.
+Authentication is successful if the request IP address is within one of the ranges.
+
+Implementation uses resolves the true real IP from the proxy headers, just make sure your
+reverse proxy is configured properly to pass the real client IP. 
+
+The `OAUTH2_BRO_EMAIL_DOMAIN` generates email addresses based on the IP address with the specified domain.
+
+For more details, see the [Proxy Mode Configuration Sources](user/user-manager.go).
+
+## Recipes
 
 📖 [Complete Guide: Dual HTTP/HTTPS Setup](Dual-HTTP-HTTPS-Setup.md) - Architecture diagrams, security considerations, and deployment examples
 📖 [JetBrains IDE Services Integration Recipes](Ide-Services-Recipes.md)
 
-## 🤝 Contributing
-
-We welcome contributions! For major changes:
-1. Open an issue to discuss your idea
-2. Fork the repository
-3. Create a pull request
-
-Let's build better authentication together!
-
 ## 📄 License
 
-Apache 2.0 — see [LICENSE](LICENSE) file
+Apache 2.0 — see [LICENSE](LICENSE)
 
 ## 🙏 Background
 
@@ -45,7 +53,7 @@ management, security, and governance of AI and Developer Tools at scale. The nam
 inspired by Orwell's "1984" — but instead of watching you, this Big Brother just checks
 your IP address!
 
-**⚠️ IMPORTANT NOTICE**
+### NOTICE
 
 This project is **NOT** an official JetBrains product and is **NOT** affiliated with, endorsed
 by, or maintained by JetBrains or any of its subsidiaries.
@@ -61,24 +69,6 @@ seamless OAuth2 authentication.
 docker build -t oauth2-bro .
 docker run -p 8077:8077 -env OAUTH2_BRO_HTTP_PORT=8087 oauth2-bro
 ```
-
-## 📋 Use Cases
-
-- **University classrooms** - Shared computers with rotating users
-- **Remote development** - Secure access to development machines without credential distribution
-- **Internal microservices** - Skip credential management for services behind your firewall
-- **Machine-to-machine auth** - Authorize services based on their network location
-- **Corporate integration** - Bridge to existing authentication systems
-- **Development environments** - Quick auth setup without the complexity
-
-## 🔒 Security Considerations
-
-⚠️ **Important**: IP-based authentication is only secure in trusted environments:
-- Use only behind firewalls or VPNs
-- Not suitable for public-facing services
-- Consider the risk of IP spoofing in your environment
-- Always use HTTPS in production
-- Configure `OAUTH2_BRO_ALLOWED_IP_MASKS` to restrict access
 
 ## ⚙️ Configuration
 
@@ -120,11 +110,24 @@ For production deployments, especially multi-node setups, provide your own RSA k
 | `OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE`   | Path to refresh token key (4096-bit RSA) | Auto-generated   |
 | `OAUTH2_BRO_REFRESH_EXPIRATION_SECONDS` | Refresh token lifetime                   | 864000 (10 days) |
 
-### Admin Access
+### Make Me Root Access
 
 | Variable                      | Description                             |
 |-------------------------------|-----------------------------------------|
 | `OAUTH2_BRO_MAKE_ROOT_SECRET` | Secret for admin override functionality |
+
+Marks the current browser session as a special account.
+It can be used to bypass the normal login flow and access the admin panel, when that specific account
+is registered in the target service as an admin.
+Run the following request (for parameters, see below) to the following endpoints:
+* `/make-root` (for bro mode)
+* `/oauth2-bro/make-root` (for proxy mode)
+
+The payload should contain the following parameters:
+- `cookieSecret`: Must match the `OAUTH2_BRO_MAKE_ROOT_SECRET` environment variable
+- At least one of: `sid`, `sub`, `name`, or `email` (missing values are autofilled from provided ones)
+
+[Examples](integration-test/root-cookie.md)
 
 ### Proxy Mode Configuration
 
@@ -147,34 +150,10 @@ to complete their authentication flow while the proxy handles actual token injec
 
 This allows services to receive authenticated requests without implementing OAuth2 themselves.
 
-## Make me Root
-
-Marks the current browser session as a special account. 
-It can be used to bypass the normal login flow and access the admin panel, when that specific account
-is registered in the target service as an admin. 
-Run the following request (for parameters, see below) to the following endpoints:
-* `/make-root` (for bro mode)
-* `/oauth2-bro/make-root` (for proxy mode)
-
-The payload should contain the following parameters:
-- `cookieSecret`: Must match the `OAUTH2_BRO_MAKE_ROOT_SECRET` environment variable
-- At least one of: `sid`, `sub`, `name`, or `email` (missing values are autofilled from provided ones)
-
-[Examples](integration-test/root-cookie.md)
-
-Standard bro mode supports "Make me Root" for the interactive OAuth2 login flow:
-- Set cookie: call ` or `/login` endpoint
-- Behavior: This sets a one-time cookie. On the next regular login flow, the `oauth2-bro` consumes the cookie, authenticates as the specified user, and immediately clears the cookie.
-
-The `/make-root` endpoint is dedicated to setting the admin override cookie, while `/login` can also handle it alongside the normal login flow. Both endpoints require:
-- `cookieSecret`: Must match the `OAUTH2_BRO_MAKE_ROOT_SECRET` environment variable
-- At least one of: `sid`, `sub`, `name`, or `email` (missing values are auto-filled from provided ones)
-
-The JWT token expiration time is used for the cookie expiration time, adjust if needed. For the bro mode, the cookie is cleared on the next login flow.
-
 ## 🔑 Key and Certificate Generation
 
-For production deployments, generate RSA keys and certificates manually:
+For production deployments, keep keys secure! Leaking them will allow anyone to impersonate your users.
+You can start by generating RSA keys and certificates manually:
 
 ```bash
 # Generate RSA keys for token signing
@@ -197,6 +176,15 @@ Single node deployments do not require generating and saving the keys. Service r
 Multi-node deployments require generating and settings the same keys to all nodes. It will also make the JWKS file more stable and 
 
 Use `/health` and `/oauth2-bro/health` endpoints to check the health of the service.
+
+## 🤝 Contributing
+
+We welcome contributions! For major changes:
+1. Open an issue to discuss your idea
+2. Fork the repository
+3. Create a pull request
+
+Let's build better authentication together!
 
 ## 🛠️ Development
 
