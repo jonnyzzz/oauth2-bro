@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha512"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
 	"log"
@@ -42,11 +43,8 @@ func initKeyId(envKeyId string, tk *broKeysImpl) {
 // shortenKeyIdForLog shortens a key ID for logging purposes using industry-best practice:
 // takes the prefix and first 12 characters of the hash for readability while maintaining uniqueness
 func shortenKeyIdForLog(keyId string) string {
-	prefix := "oauth2-bro-"
-	if len(keyId) <= len(prefix)+12 {
-		return keyId
-	}
-	return keyId[:len(prefix)+12]
+	b := sha512.Sum512([]byte(keyId))
+	return base64.URLEncoding.EncodeToString(b[:12])
 }
 
 func initPrivateKey(envKeyPemFile string, tk *broKeysImpl, defaultKeyBits int) {
