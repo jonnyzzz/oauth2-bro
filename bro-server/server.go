@@ -69,5 +69,6 @@ func (s *server) setupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/health", wrapResponse(bsc.HealthHandler))
 	mux.HandleFunc("/jwks", wrapResponse(bsc.JwksHandler(s.TokenKeys())))
 	mux.HandleFunc("/login", wrapResponse(s.login))
+	mux.HandleFunc("/make-root", wrapResponse(s.makeRoot))
 	mux.HandleFunc("/token", wrapResponse(s.token))
 }

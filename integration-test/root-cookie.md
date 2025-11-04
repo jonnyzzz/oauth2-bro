@@ -1,7 +1,7 @@
 
-This URL make you login as admin
+This URL makes you log in as admin
 
-http://localhost:8085/login?cookieSecret=jonnyzzz&sid=toolbox.admin&email=toolbox.admin@example.com
+http://localhost:8085/make-root?cookieSecret=jonnyzzz&sid=toolbox.admin&email=toolbox.admin@example.com
 
 
 For the proxy mode it will be

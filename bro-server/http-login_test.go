@@ -808,3 +808,199 @@ func TestOAuth2CodeFlowInvalidParameters(t *testing.T) {
 		}
 	})
 }
+
+func TestMakeRootEndpoint(t *testing.T) {
+	// Set up environment for testing
+	//goland:noinspection GoUnhandledErrorResult
+	os.Setenv("OAUTH2_BRO_CLIENT_CREDENTIALS", "tbe-server=bacd3019-c3b9-4b31-98d5-d3c410a1098e")
+	//goland:noinspection GoUnhandledErrorResult
+	defer os.Unsetenv("OAUTH2_BRO_CLIENT_CREDENTIALS")
+
+	//goland:noinspection GoUnhandledErrorResult
+	os.Setenv("OAUTH2_BRO_MAKE_ROOT_SECRET", "test-secret")
+	//goland:noinspection GoUnhandledErrorResult
+	defer os.Unsetenv("OAUTH2_BRO_MAKE_ROOT_SECRET")
+
+	// Create key manager for testing
+	keyManager := keymanager.NewKeyManager()
+
+	// Create user manager for testing
+	userManager := user.NewUserResolver()
+
+	// Create client manager for testing
+	clientManager := client.NewClientManager()
+
+	// Create server configuration
+	config := ServerConfig{
+		KeyManager:         *keyManager,
+		UserResolver:       userManager,
+		ClientInfoProvider: clientManager,
+		Version:            "test",
+	}
+
+	// Create server instance and setup routes on a new mux
+	serverInstance := newServer(config)
+	mux := http.NewServeMux()
+	serverInstance.setupRoutes(mux)
+
+	// Create a test server
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	// Test successful Make Root request
+	t.Run("Successful Make Root request", func(t *testing.T) {
+		// Create a client that doesn't follow redirects
+		c := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+
+		// Set up the Make Root request parameters
+		makeRootURL := fmt.Sprintf("%s/make-root?cookieSecret=test-secret&sid=admin-user&email=admin@example.com&name=%s",
+			server.URL, url.QueryEscape("Admin User"))
+
+		// Make the request to the /make-root endpoint
+		resp, err := c.Get(makeRootURL)
+		if err != nil {
+			t.Fatalf("Failed to make request to /make-root endpoint: %v", err)
+		}
+		//goland:noinspection GoUnhandledErrorResult
+		defer resp.Body.Close()
+
+		// Check that the response is successful
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			t.Fatalf("Expected status code %d, got %d. Response: %s", http.StatusOK, resp.StatusCode, string(body))
+		}
+
+		// Check that the response contains the success message
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("Failed to read response body: %v", err)
+		}
+		if !strings.Contains(string(body), "Make me Root cookie set successfully") {
+			t.Errorf("Expected success message, got: %s", string(body))
+		}
+
+		// Check that the cookie was set
+		cookies := resp.Cookies()
+		var makeRootCookie *http.Cookie
+		cookieName := "oauth2-bro-make-me-root"
+		for _, cookie := range cookies {
+			if cookie.Name == cookieName {
+				makeRootCookie = cookie
+				break
+			}
+		}
+		if makeRootCookie == nil {
+			t.Fatal("Make me Root cookie not set")
+		}
+
+		// Verify cookie properties
+		if makeRootCookie.Path != "/login" {
+			t.Errorf("Expected cookie path '/login', got '%s'", makeRootCookie.Path)
+		}
+		if !makeRootCookie.HttpOnly {
+			t.Error("Expected cookie to be HttpOnly")
+		}
+		if makeRootCookie.Value == "" {
+			t.Error("Expected cookie value to be non-empty")
+		}
+	})
+
+	// Test Make Root request with invalid secret
+	t.Run("Invalid cookieSecret", func(t *testing.T) {
+		// Set up the Make Root request parameters with invalid cookieSecret
+		makeRootURL := fmt.Sprintf("%s/make-root?cookieSecret=invalid-secret&sid=admin-user&email=admin@example.com",
+			server.URL)
+
+		// Make the request to the /make-root endpoint
+		resp, err := http.Get(makeRootURL)
+		if err != nil {
+			t.Fatalf("Failed to make request: %v", err)
+		}
+		//goland:noinspection GoUnhandledErrorResult
+		defer resp.Body.Close()
+
+		// Check that the request was rejected with BadRequest
+		if resp.StatusCode != http.StatusBadRequest {
+			body, _ := io.ReadAll(resp.Body)
+			t.Fatalf("Expected status code %d, got %d. Response: %s", http.StatusBadRequest, resp.StatusCode, string(body))
+		}
+
+		// Verify the error message
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("Failed to read response body: %v", err)
+		}
+		if !strings.Contains(string(body), "invalid cookieSecret") {
+			t.Errorf("Expected error message about invalid cookieSecret, got: %s", string(body))
+		}
+	})
+
+	// Test Make Root request with missing user info parameters
+	t.Run("Missing user info parameters", func(t *testing.T) {
+		// Set up the Make Root request parameters without user info
+		makeRootURL := fmt.Sprintf("%s/make-root?cookieSecret=test-secret",
+			server.URL)
+
+		// Make the request to the /make-root endpoint
+		resp, err := http.Get(makeRootURL)
+		if err != nil {
+			t.Fatalf("Failed to make request: %v", err)
+		}
+		//goland:noinspection GoUnhandledErrorResult
+		defer resp.Body.Close()
+
+		// Check that the request was rejected with BadRequest
+		if resp.StatusCode != http.StatusBadRequest {
+			body, _ := io.ReadAll(resp.Body)
+			t.Fatalf("Expected status code %d, got %d. Response: %s", http.StatusBadRequest, resp.StatusCode, string(body))
+		}
+
+		// Verify the error message
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("Failed to read response body: %v", err)
+		}
+		if !strings.Contains(string(body), "at least one of sid, sub, name, or email must be provided") {
+			t.Errorf("Expected error message about missing user info, got: %s", string(body))
+		}
+	})
+
+	// Test Make Root request without cookieSecret parameter
+	t.Run("Missing cookieSecret parameter", func(t *testing.T) {
+		// Set up the Make Root request parameters without cookieSecret
+		makeRootURL := fmt.Sprintf("%s/make-root?sid=admin-user&email=admin@example.com",
+			server.URL)
+
+		// Make the request to the /make-root endpoint
+		resp, err := http.Get(makeRootURL)
+		if err != nil {
+			t.Fatalf("Failed to make request: %v", err)
+		}
+		//goland:noinspection GoUnhandledErrorResult
+		defer resp.Body.Close()
+
+		// When cookieSecret is missing, the handler shows the home page
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
+		}
+
+		// Verify the response contains home page content
+		body, _ := io.ReadAll(resp.Body)
+		if !strings.Contains(string(body), "OAuth2-bro") {
+			t.Errorf("Expected home page content, got: %s", string(body))
+		}
+
+		// Verify no Make Root cookie was set
+		cookies := resp.Cookies()
+		cookieName := "oauth2-bro-make-me-root"
+		for _, cookie := range cookies {
+			if cookie.Name == cookieName {
+				t.Error("Make Root cookie should not be set when cookieSecret is missing")
+			}
+		}
+	})
+}

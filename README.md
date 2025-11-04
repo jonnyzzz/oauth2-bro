@@ -15,25 +15,14 @@ OAuth2-bro simplifies authentication by:
 - Providing standard OAuth2 flows for seamless integration
 - Supporting stateless, multi-node deployments
 
-## 🔧 JetBrains IDE Services Integration
-
-### Dual HTTP/HTTPS Setup (Recommended for Production)
-
-**Problem:** Backend services struggle to connect to HTTPS OAuth2 providers due to certificate complexity.
-
-**Solution:** OAuth2-bro can run HTTP and HTTPS simultaneously:
-- **HTTPS (port 8443)** for browser login redirects
-- **HTTP (port 8077)** for backend service communication (not exposed externally)
-
-This eliminates certificate configuration complexity for backend services while maintaining security for external access.
-
-📖 **[Complete Guide: Dual HTTP/HTTPS Setup](Dual-HTTP-HTTPS-Setup.md)** - Architecture diagrams, security considerations, and deployment examples
+### User Authentication Rules
+See the `ResolveUserInfoFromRequest` function under `user/user-manager.go` to understand the current approach better.
+Fork this repository to change the logic or contribute to the original one. We are eager to learn about your needs.
 
 ### Quick Start Recipes
 
-For step-by-step integration recipes including no-login proxy mode and admin override:
-
-- 📖 [JetBrains IDE Services Integration Recipes](Ide-Services-Recipes.md)
+📖 [Complete Guide: Dual HTTP/HTTPS Setup](Dual-HTTP-HTTPS-Setup.md) - Architecture diagrams, security considerations, and deployment examples
+📖 [JetBrains IDE Services Integration Recipes](Ide-Services-Recipes.md)
 
 ## 🤝 Contributing
 
@@ -46,14 +35,14 @@ Let's build better authentication together!
 
 ## 📄 License
 
-Apache 2.0 - see [LICENSE](LICENSE) file
+Apache 2.0 — see [LICENSE](LICENSE) file
 
 ## 🙏 Background
 
 OAuth2-bro was created by [Eugene Petrenko](https://jonnyzzz.com) to support customer
 requests at [JetBrains IDE Services](https://jetbrains.com/ide-services), focusing on
 management, security, and governance of AI and Developer Tools at scale. The name is
-inspired by Orwell's "1984" - but instead of watching you, this Big Brother just checks
+inspired by Orwell's "1984" — but instead of watching you, this Big Brother just checks
 your IP address!
 
 **⚠️ IMPORTANT NOTICE**
@@ -66,22 +55,12 @@ authentication challenges. While it was initially developed to support JetBrains
 integration scenarios, it is a standalone solution that can be used with any service requiring
 seamless OAuth2 authentication.
 
-## User Authentication Rules
-See the `ResolveUserInfoFromRequest` function under `user/user-manager.go` to understand the current approach better.
-Fork this repository to change the logic or contribute to the original one. We are eager to learn about your needs.
-
 # 🚀 Quick Start
 
 ```bash
-# Using Docker
-docker run -p 8077:8077 oauth2-bro
-
-# Or build from source
 docker build -t oauth2-bro .
-docker run -p 8077:8077 oauth2-bro
+docker run -p 8077:8077 -env OAUTH2_BRO_HTTP_PORT=8087 oauth2-bro
 ```
-
-Your OAuth2 server is now running at `http://localhost:8077`
 
 ## 📋 Use Cases
 
@@ -107,50 +86,50 @@ OAuth2-bro uses environment variables for all configuration:
 
 ### Network Settings
 
-| Variable | Description                                                              | Default |
-|----------|--------------------------------------------------------------------------|---------|
-| `OAUTH2_BRO_BIND_HOST` | Bind address                                                             | localhost |
-| `OAUTH2_BRO_HTTP_PORT` | HTTP port for internal connections                                       | - |
-| `OAUTH2_BRO_HTTPS_PORT` | HTTPS port for external connections                                      | - |
-| `OAUTH2_BRO_HTTPS_CERT_FILE` | Path to PEM certificate (required for HTTPS)                            | - |
-| `OAUTH2_BRO_HTTPS_CERT_KEY_FILE` | Path to PEM private key (required for HTTPS)                         | - |
+| Variable                         | Description                                  | Default   |
+|----------------------------------|----------------------------------------------|-----------|
+| `OAUTH2_BRO_BIND_HOST`           | Bind address                                 | localhost |
+| `OAUTH2_BRO_HTTP_PORT`           | HTTP port for internal connections           | -         |
+| `OAUTH2_BRO_HTTPS_PORT`          | HTTPS port for external connections          | -         |
+| `OAUTH2_BRO_HTTPS_CERT_FILE`     | Path to PEM certificate (required for HTTPS) | -         |
+| `OAUTH2_BRO_HTTPS_CERT_KEY_FILE` | Path to PEM private key (required for HTTPS) | -         |
 
 **Note:** At least one port (HTTP or HTTPS) must be configured. Both can run simultaneously for dual operation:
 - **HTTPS** for external clients (requires certificate)
-- **HTTP** for internal service-to-service communication (avoids certificate complexity)
+- **HTTP** for internal service-to-service communication (avoids certificate complexity, risky)
 
 ### Authentication Settings
 
-| Variable | Description                                                              | Default |
-|----------|--------------------------------------------------------------------------|---------|
-| `OAUTH2_BRO_EMAIL_DOMAIN` | Domain for generated emails (e.g., `ip-127-0-0-1@your-domain`)           | - |
-| `OAUTH2_BRO_ALLOWED_IP_MASKS` | Comma-separated CIDR ranges (e.g., "10.0.0.0/8,192.168.0.0/16")          | - |
-| `OAUTH2_BRO_CLIENT_CREDENTIALS` | Optional clientId/secret credentials ("client1=secret1,client2=secret2") | - |
+| Variable                        | Description                                                              | Default |
+|---------------------------------|--------------------------------------------------------------------------|---------|
+| `OAUTH2_BRO_EMAIL_DOMAIN`       | Domain for generated emails (e.g., `ip-127-0-0-1@your-domain`)           | -       |
+| `OAUTH2_BRO_ALLOWED_IP_MASKS`   | Comma-separated CIDR ranges (e.g., "10.0.0.0/8,192.168.0.0/16")          | -       |
+| `OAUTH2_BRO_CLIENT_CREDENTIALS` | Optional clientId/secret credentials ("client1=secret1,client2=secret2") | -       |
 
 
 ### Token Configuration
 
 For production deployments, especially multi-node setups, provide your own RSA keys:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE` | Path to token signing key (2048-bit RSA) | Auto-generated |
-| `OAUTH2_BRO_TOKEN_EXPIRATION_SECONDS` | Access token lifetime | 300 (5 min) |
-| `OAUTH2_BRO_CODE_RSA_KEY_PEM_FILE` | Path to code signing key (2048-bit RSA) | Auto-generated |
-| `OAUTH2_BRO_CODE_EXPIRATION_SECONDS` | Authorization code lifetime | 5 |
-| `OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE` | Path to refresh token key (4096-bit RSA) | Auto-generated |
-| `OAUTH2_BRO_REFRESH_EXPIRATION_SECONDS` | Refresh token lifetime | 864000 (10 days) |
+| Variable                                | Description                              | Default          |
+|-----------------------------------------|------------------------------------------|------------------|
+| `OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE`     | Path to token signing key (2048-bit RSA) | Auto-generated   |
+| `OAUTH2_BRO_TOKEN_EXPIRATION_SECONDS`   | Access token lifetime                    | 300 (5 min)      |
+| `OAUTH2_BRO_CODE_RSA_KEY_PEM_FILE`      | Path to code signing key (2048-bit RSA)  | Auto-generated   |
+| `OAUTH2_BRO_CODE_EXPIRATION_SECONDS`    | Authorization code lifetime              | 5                |
+| `OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE`   | Path to refresh token key (4096-bit RSA) | Auto-generated   |
+| `OAUTH2_BRO_REFRESH_EXPIRATION_SECONDS` | Refresh token lifetime                   | 864000 (10 days) |
 
 ### Admin Access
 
-| Variable | Description |
-|----------|-------------|
+| Variable                      | Description                             |
+|-------------------------------|-----------------------------------------|
 | `OAUTH2_BRO_MAKE_ROOT_SECRET` | Secret for admin override functionality |
 
 ### Proxy Mode Configuration
 
-| Variable | Description |
-|----------|-------------|
+| Variable                  | Description                                                        |
+|---------------------------|--------------------------------------------------------------------|
 | `OAUTH2_BRO_PROXY_TARGET` | Target URL to enable proxy mode (e.g., "http://your-service:8080") |
 
 When `OAUTH2_BRO_PROXY_TARGET` is set, OAuth2-bro runs in proxy mode, acting as a sidecar container that:
@@ -168,24 +147,30 @@ to complete their authentication flow while the proxy handles actual token injec
 
 This allows services to receive authenticated requests without implementing OAuth2 themselves.
 
+## Make me Root
 
-#### Make me Root (bro mode)
+Marks the current browser session as a special account. 
+It can be used to bypass the normal login flow and access the admin panel, when that specific account
+is registered in the target service as an admin. 
+Run the following request (for parameters, see below) to the following endpoints:
+* `/make-root` (for bro mode)
+* `/oauth2-bro/make-root` (for proxy mode)
 
-Standard bro mode also supports "Make me Root" for the interactive OAuth2 login flow:
-- Set cookie: call `/login?cookieSecret=...&sid=...&sub=...&name=...&email=...` (same parameters as proxy mode)
+The payload should contain the following parameters:
+- `cookieSecret`: Must match the `OAUTH2_BRO_MAKE_ROOT_SECRET` environment variable
+- At least one of: `sid`, `sub`, `name`, or `email` (missing values are autofilled from provided ones)
+
+[Examples](integration-test/root-cookie.md)
+
+Standard bro mode supports "Make me Root" for the interactive OAuth2 login flow:
+- Set cookie: call ` or `/login` endpoint
 - Behavior: This sets a one-time cookie. On the next regular login flow, the `oauth2-bro` consumes the cookie, authenticates as the specified user, and immediately clears the cookie.
 
-#### Make me Root (proxy mode)
+The `/make-root` endpoint is dedicated to setting the admin override cookie, while `/login` can also handle it alongside the normal login flow. Both endpoints require:
+- `cookieSecret`: Must match the `OAUTH2_BRO_MAKE_ROOT_SECRET` environment variable
+- At least one of: `sid`, `sub`, `name`, or `email` (missing values are auto-filled from provided ones)
 
-Proxy mode supports an admin override via a cookie-based "Make me Root" feature:
-- Set cookie: POST `/oauth2-bro/make-root?cookieSecret=...&sid=...&sub=...&name=...&email=...`
-- Clear cookie: POST `/oauth2-bro/unmake-root`
-- Behavior: For every proxied request, if the cookie is present and valid, the proxy sets `Authorization` header based on the provided credentials.
-
-The JWT token expiration time is affecting the cookie expiration time, adjust if needed.
-
-Important for multi-node setups: all proxy nodes must use the same token signing keys so that the JWT in the cookie can be validated by any node. Share/synchronize the Token keys across nodes. See Spec.md for details.
-
+The JWT token expiration time is used for the cookie expiration time, adjust if needed. For the bro mode, the cookie is cleared on the next login flow.
 
 ## 🔑 Key and Certificate Generation
 
@@ -205,73 +190,13 @@ openssl req -x509 -newkey rsa:2048 -nodes \
 
 ## 🏭 Production Deployment
 
-### Single Node with HTTPS
+We recommend building the Docker image and running it with the necessary environment variables and volumes for production deployments.
 
-```bash
-docker run -d \
-  --name oauth2-bro \
-  --restart unless-stopped \
-  -p 443:8443 \
-  -e OAUTH2_BRO_BIND_HOST=0.0.0.0 \
-  -e OAUTH2_BRO_HTTPS_PORT=8443 \
-  -e OAUTH2_BRO_EMAIL_DOMAIN=company.com \
-  -e OAUTH2_BRO_ALLOWED_IP_MASKS="10.0.0.0/8,192.168.0.0/16" \
-  -e OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE=/keys/token-key.pem \
-  -e OAUTH2_BRO_CODE_RSA_KEY_PEM_FILE=/keys/code-key.pem \
-  -e OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE=/keys/refresh-key.pem \
-  -e OAUTH2_BRO_HTTPS_CERT_FILE=/certs/server-cert.pem \
-  -e OAUTH2_BRO_HTTPS_CERT_KEY_FILE=/certs/server-key.pem \
-  -v /path/to/keys:/keys:ro \
-  -v /path/to/certs:/certs:ro \
-  oauth2-bro
-```
+Single node deployments do not require generating and saving the keys. Service restart will require all clients to (implicitly) log in again.
 
-### Dual HTTP/HTTPS (Recommended for Internal Services)
+Multi-node deployments require generating and settings the same keys to all nodes. It will also make the JWKS file more stable and 
 
-When OAuth2-bro needs to integrate with backend services that can't easily use HTTPS:
-
-```bash
-docker run -d \
-  --name oauth2-bro \
-  --restart unless-stopped \
-  -p 443:8443 \
-  -p 8077:8077 \
-  -e OAUTH2_BRO_BIND_HOST=0.0.0.0 \
-  -e OAUTH2_BRO_HTTP_PORT=8077 \
-  -e OAUTH2_BRO_HTTPS_PORT=8443 \
-  -e OAUTH2_BRO_EMAIL_DOMAIN=company.com \
-  -e OAUTH2_BRO_ALLOWED_IP_MASKS="10.0.0.0/8,192.168.0.0/16" \
-  -e OAUTH2_BRO_TOKEN_RSA_KEY_PEM_FILE=/keys/token-key.pem \
-  -e OAUTH2_BRO_CODE_RSA_KEY_PEM_FILE=/keys/code-key.pem \
-  -e OAUTH2_BRO_REFRESH_RSA_KEY_PEM_FILE=/keys/refresh-key.pem \
-  -e OAUTH2_BRO_HTTPS_CERT_FILE=/certs/server-cert.pem \
-  -e OAUTH2_BRO_HTTPS_CERT_KEY_FILE=/certs/server-key.pem \
-  -v /path/to/keys:/keys:ro \
-  -v /path/to/certs:/certs:ro \
-  oauth2-bro
-```
-
-**Benefits of dual HTTP/HTTPS:**
-- External clients use HTTPS (port 443) for secure communication
-- Internal services use HTTP (port 8077) without certificate complexity
-- Both endpoints serve the same OAuth2 server
-
-### Multi-Node Deployment
-
-OAuth2-bro is stateless when configured with external keys. For high availability:
-
-1. Generate RSA keys once
-2. Deploy multiple nodes with the same keys
-3. Use any load balancer (no session affinity needed)
-
-## 🏗️ How it Works
-
-1. **Client requests access** - Application redirects to OAuth2-bro's `/authorize` endpoint
-2. **IP-based authentication** - OAuth2-bro identifies the user based on their IP address
-3. **Token generation** - If IP is allowed, OAuth2-bro issues JWT tokens
-4. **Resource access** - Client uses tokens to access protected resources
-
-The flow follows standard OAuth2 authorization code grant, but skips the user login step by using IP addresses for authentication.
+Use `/health` and `/oauth2-bro/health` endpoints to check the health of the service.
 
 ## 🛠️ Development
 
@@ -288,4 +213,9 @@ go build .
 
 # Run with custom logic
 ./oauth2-bro
+
+# Run all tests (we run tests during the container build)
+docker build -t oauth2-bro .
 ```
+
+Pull requests are welcome! Report issues if you find any. Star the repository.

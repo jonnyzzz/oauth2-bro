@@ -8,17 +8,34 @@ import (
 	"jonnyzzz.com/oauth2-bro/user"
 )
 
-func (s *server) login(w http.ResponseWriter, r *http.Request) {
+func (s *server) makeRootImpl(w http.ResponseWriter, r *http.Request) bool {
 	userInfo, err := bsc.ParseMakeRootRequest(r)
 
 	if err != nil {
 		bsc.BadRequest(w, r, "Failed to sign refresh token: "+err.Error())
-		return
+		return true
 	}
 
 	// Only proceed with Make me Root if cookieSecret is provided and matches the expected value
 	if userInfo != nil {
 		s.handleMakeRoot(w, r, userInfo)
+		return true
+	}
+
+	return false
+}
+
+func (s *server) makeRoot(w http.ResponseWriter, r *http.Request) {
+	handled := s.makeRootImpl(w, r)
+	if !handled {
+		// If not handled, show home page
+		s.home(w, r)
+	}
+}
+
+func (s *server) login(w http.ResponseWriter, r *http.Request) {
+	handled := s.makeRootImpl(w, r)
+	if handled {
 		return
 	}
 
